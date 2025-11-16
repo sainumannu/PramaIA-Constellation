@@ -10,7 +10,7 @@ import tiktoken
 from typing import Optional # Aggiunto per type hinting
 
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
 # from langchain_community.vectorstores import Chroma # Rimosso (VectorstoreService)
 # from langchain.embeddings.openai import OpenAIEmbeddings # Ora in rag_chains_prompts
 # from langchain.llms import OpenAI # Ora in rag_chains_prompts

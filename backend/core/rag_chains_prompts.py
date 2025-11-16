@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings

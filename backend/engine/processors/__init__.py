@@ -2,92 +2,49 @@
 Processori per l'engine PramaIA.
 Modulo di inizializzazione che esporta tutti i processori disponibili.
 
-AGGIORNAMENTO: Aggiunti processori reali per sostituire gli stub.
 NOTA: I processori PDF sono stati migrati all'architettura PDK.
 Le implementazioni PDF si trovano ora in PramaIA-PDK/plugins/
 """
 
-# Importa processori REALI COMPLETI - Con ChromaDB e dipendenze complete
-try:
-    # Real processors completi - IMPLEMENTAZIONI FUNZIONANTI CON CHROMADB
-    from .real_processors_part2 import (
-        VectorStoreOperationsProcessor as VectorStoreOperationsProcessor
-    )
-    
-    # Real processors semplificati per gli altri - IMPLEMENTAZIONI FUNZIONANTI
-    from .simple_real_processors import (
-        SimpleEventInputProcessor as EventInputProcessor,
-        SimpleFileParsingProcessor as FileParsingProcessor, 
-        SimpleMetadataManagerProcessor as MetadataManagerProcessor,
-        SimpleDocumentProcessorProcessor as DocumentProcessorProcessor,
-        SimpleEventLoggerProcessor as EventLoggerProcessor
-    )
-    
-    # Registro processori reali
-    REAL_PROCESSORS = {
-        'EventInputProcessor': EventInputProcessor,
-        'FileParsingProcessor': FileParsingProcessor,
-        'MetadataManagerProcessor': MetadataManagerProcessor,
-        'DocumentProcessorProcessor': DocumentProcessorProcessor,
-        'VectorStoreOperationsProcessor': VectorStoreOperationsProcessor,  # CHROMADB REALE
-        'EventLoggerProcessor': EventLoggerProcessor
-    }
-    
-except ImportError as e:
-    import logging
-    logging.warning(f"⚠️  Processori reali non disponibili, usando fallback semplificati: {e}")
-    
-    # Fallback ai processori semplificati se ChromaDB non è disponibile
-    try:
-        from .simple_real_processors import (
-            SimpleEventInputProcessor as EventInputProcessor,
-            SimpleFileParsingProcessor as FileParsingProcessor, 
-            SimpleMetadataManagerProcessor as MetadataManagerProcessor,
-            SimpleDocumentProcessorProcessor as DocumentProcessorProcessor,
-            SimpleVectorStoreOperationsProcessor as VectorStoreOperationsProcessor,
-            SimpleEventLoggerProcessor as EventLoggerProcessor
-        )
-        
-        REAL_PROCESSORS = {
-            'EventInputProcessor': EventInputProcessor,
-            'FileParsingProcessor': FileParsingProcessor,
-            'MetadataManagerProcessor': MetadataManagerProcessor,
-            'DocumentProcessorProcessor': DocumentProcessorProcessor,
-            'VectorStoreOperationsProcessor': VectorStoreOperationsProcessor,  # FALLBACK SIMPLE
-            'EventLoggerProcessor': EventLoggerProcessor
-        }
-        
-    except ImportError as e2:
-        import logging
-        logging.error(f"❌ Tutti i processori reali falliti: {e2}")
-        REAL_PROCESSORS = {}
+# Importa processori REALI - Solo implementazioni complete
+from .real_processors_part2 import (
+    DocumentProcessorProcessor,
+    VectorStoreOperationsProcessor,
+    EventLoggerProcessor
+)
 
-# Importa processori essenziali (NON PDF - quelli sono nel PDK)
-try:
-    # RAG processors - ESSENZIALI per la chat
-    from .rag_processors import RAGQueryProcessor, RAGGenerationProcessor, DocumentIndexProcessor
-    
-    # LLM processors - ESSENZIALI per la chat  
-    from .llm_processors import OpenAIProcessor, AnthropicProcessor, OllamaProcessor
-    
-    # Input/Output processors - ESSENZIALI per l'interfaccia
-    from .input_processors import UserInputProcessor, FileInputProcessor
-    from .output_processors import TextOutputProcessor, FileOutputProcessor
-    
-    # Data processors - UTILI per elaborazione dati
-    from .data_processors import DataTransformProcessor, TextProcessor, JSONProcessor
-    
-    # API processors - UTILI per integrazioni
-    from .api_processors import HTTPRequestProcessor, WebhookProcessor, APICallProcessor
+from .simple_real_processors import (
+    SimpleEventInputProcessor as EventInputProcessor,
+    SimpleFileParsingProcessor as FileParsingProcessor, 
+    SimpleMetadataManagerProcessor as MetadataManagerProcessor
+)
 
-except ImportError as e:
-    # Log dell'errore ma continua comunque
-    import logging
-    logging.warning(f"⚠️  Alcuni processori non disponibili: {e}")
-    # Definizioni stub per evitare errori
-    RAGQueryProcessor = None
-    RAGGenerationProcessor = None
-    DocumentIndexProcessor = None
+# Registro processori reali
+REAL_PROCESSORS = {
+    'EventInputProcessor': EventInputProcessor,
+    'FileParsingProcessor': FileParsingProcessor,
+    'MetadataManagerProcessor': MetadataManagerProcessor,
+    'DocumentProcessorProcessor': DocumentProcessorProcessor,
+    'VectorStoreOperationsProcessor': VectorStoreOperationsProcessor,
+    'EventLoggerProcessor': EventLoggerProcessor
+}
+
+# Importa processori essenziali
+# RAG processors - TEMPORANEAMENTE COMMENTATI per dependency issues
+# from .rag_processors import RAGQueryProcessor, RAGGenerationProcessor, DocumentIndexProcessor
+
+# LLM processors - ESSENZIALI per la chat  
+from .llm_processors import OpenAIProcessor, AnthropicProcessor, OllamaProcessor
+
+# Input/Output processors - ESSENZIALI per l'interfaccia
+from .input_processors import UserInputProcessor, FileInputProcessor
+from .output_processors import TextOutputProcessor, FileOutputProcessor
+
+# Data processors - UTILI per elaborazione dati
+from .data_processors import DataTransformProcessor, TextProcessor, JSONProcessor
+
+# API processors - UTILI per integrazioni
+from .api_processors import HTTPRequestProcessor, WebhookProcessor, APICallProcessor
 
 # Funzioni di utilità per gestione processori
 def get_real_processor(processor_name: str):
@@ -115,57 +72,43 @@ def list_available_processors():
 def validate_processor_dependencies():
     """
     Valida che tutte le dipendenze dei processori siano disponibili.
+    Se manca qualcosa, il sistema deve fallire chiaramente.
     
     Returns:
         dict: Stato delle dipendenze per ogni processore
     """
     status = {}
     
-    # Test EventInputProcessor (sempre disponibile)
+    # Test EventInputProcessor
     status['EventInputProcessor'] = {'available': True, 'issues': []}
     
-    # Test FileParsingProcessor
-    try:
-        import PyPDF2
-        import pdfplumber
-        status['FileParsingProcessor'] = {'available': True, 'issues': []}
-    except ImportError as e:
-        status['FileParsingProcessor'] = {
-            'available': False, 
-            'issues': ['PyPDF2 o pdfplumber non disponibili']
-        }
+    # Test FileParsingProcessor - DEVE avere PyPDF2 o fallisce
+    import PyPDF2
+    import pdfplumber
+    status['FileParsingProcessor'] = {'available': True, 'issues': []}
     
-    # Test MetadataManagerProcessor (sempre disponibile)
+    # Test MetadataManagerProcessor
     status['MetadataManagerProcessor'] = {'available': True, 'issues': []}
     
-    # Test DocumentProcessorProcessor (sempre disponibile)  
+    # Test DocumentProcessorProcessor
     status['DocumentProcessorProcessor'] = {'available': True, 'issues': []}
     
-    # Test VectorStoreOperationsProcessor
-    issues = []
-    try:
-        import chromadb
-    except ImportError:
-        issues.append('ChromaDB non disponibile')
-        
-    try:
-        from sentence_transformers import SentenceTransformer
-    except ImportError:
-        issues.append('SentenceTransformers non disponibile')
-    
+    # Test VectorStoreOperationsProcessor - DEVE avere ChromaDB o fallisce
+    import chromadb
+    from sentence_transformers import SentenceTransformer
     status['VectorStoreOperationsProcessor'] = {
-        'available': len(issues) == 0,
-        'issues': issues,
-        'type': 'real_chromadb' if len(issues) == 0 else 'fallback_simple'
+        'available': True,
+        'issues': [],
+        'type': 'real_chromadb'
     }
     
-    # Test EventLoggerProcessor (sempre disponibile)
+    # Test EventLoggerProcessor
     status['EventLoggerProcessor'] = {'available': True, 'issues': []}
     
     return status
 
 __all__ = [
-    # Processori REALI - NUOVI
+    # Processori REALI
     'EventInputProcessor',
     'FileParsingProcessor',
     'MetadataManagerProcessor', 
@@ -174,17 +117,17 @@ __all__ = [
     'EventLoggerProcessor',
     'REAL_PROCESSORS',
     
-    # Processori RAG - ESSENZIALI per chat
-    'RAGQueryProcessor',
-    'RAGGenerationProcessor', 
-    'DocumentIndexProcessor',
+    # Processori RAG - TEMPORANEAMENTE COMMENTATI
+    # 'RAGQueryProcessor',
+    # 'RAGGenerationProcessor', 
+    # 'DocumentIndexProcessor',
     
-    # Processori LLM - ESSENZIALI per chat
+    # Processori LLM
     'OpenAIProcessor',
     'AnthropicProcessor', 
     'OllamaProcessor',
     
-    # Processori I/O - ESSENZIALI per interfaccia
+    # Processori I/O
     'UserInputProcessor',
     'FileInputProcessor',
     'TextOutputProcessor',
@@ -201,8 +144,5 @@ __all__ = [
     # Funzioni utilità
     'get_real_processor',
     'list_available_processors',
-    'validate_processor_dependencies',
-    
-    # NOTA: I processori PDF sono stati migrati al PDK
-    # Vedere PramaIA-PDK/plugins/ per le implementazioni PDF
-] 
+    'validate_processor_dependencies'
+]

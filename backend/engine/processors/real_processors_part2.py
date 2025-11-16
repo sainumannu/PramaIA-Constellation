@@ -11,26 +11,10 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 
-# ChromaDB e embedding - Import condizionale per evitare errori di compatibilità
-CHROMADB_AVAILABLE = False
-EMBEDDING_AVAILABLE = False
-
-try:
-    import chromadb
-    from chromadb.config import Settings
-    CHROMADB_AVAILABLE = True
-except ImportError as e:
-    logging.warning(f"ChromaDB non disponibile: {e}")
-except Exception as e:
-    logging.warning(f"Errore importazione ChromaDB (compatibilità): {e}")
-
-# Sentence transformers per embedding
-try:
-    from sentence_transformers import SentenceTransformer
-    EMBEDDING_AVAILABLE = True
-except ImportError:
-    EMBEDDING_AVAILABLE = False
-    logging.warning("SentenceTransformers non disponibile. Installare con: pip install sentence-transformers")
+# ChromaDB e embedding - Import diretti senza fallback
+import chromadb
+from chromadb.config import Settings
+from sentence_transformers import SentenceTransformer
 
 # SQLite per metadati strutturati
 import sqlite3
@@ -199,17 +183,12 @@ class VectorStoreOperationsProcessor(BaseNodeProcessor):
     """
     
     def __init__(self):
-        self.embedding_model = None
         self.chroma_client = None
         self.collection_name = "prama_documents"
         
-        # Inizializza modelli se disponibili
-        if EMBEDDING_AVAILABLE:
-            try:
-                self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-                logger.info("✅ Modello embedding caricato: all-MiniLM-L6-v2")
-            except Exception as e:
-                logger.error(f"❌ Errore caricamento embedding model: {e}")
+        # Inizializza modello embedding
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        logger.info("✅ Modello embedding caricato: all-MiniLM-L6-v2")
     
     async def execute(self, node, context: ExecutionContext) -> Dict[str, Any]:
         """
@@ -217,8 +196,7 @@ class VectorStoreOperationsProcessor(BaseNodeProcessor):
         """
         logger.info(f"🔍 Vector Store Processor: '{node.name}'")
         
-        if not CHROMADB_AVAILABLE or not EMBEDDING_AVAILABLE:
-            raise ImportError("ChromaDB o SentenceTransformers non disponibili")
+
         
         input_data = context.get_input_for_node(node.node_id)
         node_config = getattr(node, 'config', {})
@@ -429,7 +407,7 @@ class VectorStoreOperationsProcessor(BaseNodeProcessor):
             if not isinstance(limit, int) or limit < 1 or limit > 100:
                 return False
         
-        return CHROMADB_AVAILABLE and EMBEDDING_AVAILABLE
+        return True
 
 
 class EventLoggerProcessor(BaseNodeProcessor):
