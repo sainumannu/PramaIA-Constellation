@@ -13,7 +13,7 @@ from datetime import datetime
 sys.path.append('C:/PramaIA')
 sys.path.append('C:/PramaIA/PramaIA-VectorstoreService')
 
-from backend.engine.processors.real_processors_part2 import VectorStoreOperationsProcessor
+from backend.engine.processors.vector_store_processor import VectorStoreOperationsProcessor
 from app.utils.sqlite_metadata_manager import SQLiteMetadataManager
 
 

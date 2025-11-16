@@ -14,7 +14,7 @@ from pathlib import Path
 # Configurazione paths
 sys.path.append(str(Path(__file__).parent))
 
-def test_simple_real_processors():
+def test_real_processors():
     """Test diretto dei processori reali implementati."""
     print("🧪 TEST PROCESSORI REALI")
     print("=" * 50)
@@ -22,24 +22,24 @@ def test_simple_real_processors():
     try:
         # Import diretto dei processori dal backend
         sys.path.append("C:/PramaIA/backend/engine/processors")
-        from simple_real_processors import (
-            SimpleEventInputProcessor,
-            SimpleFileParsingProcessor,
-            SimpleDocumentProcessorProcessor,
-            SimpleVectorStoreOperationsProcessor,
-            SimpleMetadataManagerProcessor,
-            SimpleEventLoggerProcessor
+        from backend.engine.processors import (
+            EventInputProcessor,
+            FileParsingProcessor,
+            DocumentProcessorProcessor,
+            VectorStoreOperationsProcessor,
+            MetadataManagerProcessor,
+            EventLoggerProcessor
         )
         print("✅ Import processori: OK")
         
         # Test istanziazione
         processors = {
-            'EventInput': SimpleEventInputProcessor(),
-            'FileParsing': SimpleFileParsingProcessor(),
-            'DocumentProcessor': SimpleDocumentProcessorProcessor(),
-            'VectorOperations': SimpleVectorStoreOperationsProcessor(),
-            'MetadataManager': SimpleMetadataManagerProcessor(),
-            'EventLogger': SimpleEventLoggerProcessor()
+            'EventInput': EventInputProcessor(),
+            'FileParsing': FileParsingProcessor(),
+            'DocumentProcessor': DocumentProcessorProcessor(),
+            'VectorOperations': VectorStoreOperationsProcessor(),
+            'MetadataManager': MetadataManagerProcessor(),
+            'EventLogger': EventLoggerProcessor()
         }
         
         print("✅ Istanziazione processori: OK")
@@ -170,7 +170,7 @@ def main():
     results = []
     
     # Test processori
-    results.append(test_simple_real_processors())
+    results.append(test_real_processors())
     
     # Test database
     results.append(test_database_connectivity())

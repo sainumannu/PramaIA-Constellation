@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from backend.engine.processors.real_processors_part2 import VectorStoreOperationsProcessor
+from backend.engine.processors.vector_store_processor import VectorStoreOperationsProcessor
 
 
 async def test_full_crud():
