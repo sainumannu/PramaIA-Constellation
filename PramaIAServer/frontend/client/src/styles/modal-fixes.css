@@ -1,0 +1,63 @@
+/* Fixes per z-index delle modali Chakra UI */
+
+/* Assicura che le modali Chakra UI siano sempre sopra altri elementi */
+.chakra-modal__overlay {
+  z-index: 14999 !important;
+}
+
+.chakra-modal__content-container {
+  z-index: 15000 !important;
+}
+
+.chakra-modal__content {
+  z-index: 15001 !important;
+}
+
+/* AlertDialog fixes */
+.chakra-alert-dialog__overlay {
+  z-index: 14999 !important;
+}
+
+.chakra-alert-dialog__content {
+  z-index: 15001 !important;
+}
+
+/* Tooltip e Popover devono essere sotto le modali */
+.chakra-tooltip {
+  z-index: 13000 !important;
+}
+
+.chakra-popover__content {
+  z-index: 12000 !important;
+}
+
+.chakra-menu__menu-list {
+  z-index: 11000 !important;
+}
+
+/* Fix per icone che potrebbero avere position absolute/fixed */
+.chakra-icon {
+  position: relative;
+}
+
+/* Assicura che durante le modali aperte il corpo non scrolli */
+body.chakra-ui-modal-open {
+  overflow: hidden !important;
+}
+
+/* Fix per elementi che potrebbero fuoriuscire dalle modali */
+.chakra-modal__content * {
+  position: relative;
+  z-index: auto;
+}
+
+/* Assicura che gli elementi interni alle modali abbiano un z-index locale corretto */
+.chakra-modal__content .chakra-icon-button {
+  z-index: 1;
+}
+
+/* Fix specifico per l'InfoIcon nelle modali */
+.chakra-modal__content .chakra-icon-button[aria-label="Aiuto"] {
+  z-index: 2;
+  position: relative;
+}

@@ -1,0 +1,14 @@
+/* Fix per evitare la troncatura degli ID dei documenti */
+code {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: normal;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.select-all {
+  user-select: all;
+}

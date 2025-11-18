@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import modal fixes per Chakra UI z-index issues */
+@import './styles/modal-fixes.css';
+
+/* Import fix per la visualizzazione degli ID dei documenti */
+@import './styles/document-id-fix.css';
