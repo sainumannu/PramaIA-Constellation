@@ -38,8 +38,8 @@ if ($Debug) {
 }
 
 try {
-    Write-Host "Comando: python -m src.main" -ForegroundColor Yellow
-    python -m src.main
+    Write-Host "Comando: uvicorn src.main:app --host $Host --port $Port" -ForegroundColor Yellow
+    uvicorn src.main:app --host $Host --port $Port
 } catch {
     Write-Host "❌ Errore avvio document monitor: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "💡 Suggerimenti:" -ForegroundColor Yellow

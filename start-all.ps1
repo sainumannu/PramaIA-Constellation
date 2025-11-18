@@ -220,7 +220,7 @@ if (Test-Path "PramaIA-VectorstoreService") {
 # 4. Avvio PDF Monitor Agent (Opzionale)
 Write-Host "4. PDF Monitor Agent" -ForegroundColor Blue
 if (Test-Path "PramaIA-Agents\document-folder-monitor-agent") {
-    if (Start-PramaService -Name "PDF Monitor Agent" -Path "PramaIA-Agents\document-folder-monitor-agent" -Command "python main.py" -StartupDelay 5) { 
+    if (Start-PramaService -Name "PDF Monitor Agent" -Path "PramaIA-Agents\document-folder-monitor-agent" -Command "uvicorn src.main:app --host 0.0.0.0 --port $PLUGIN_PDF_MONITOR_PORT" -StartupDelay 5) { 
         $optionalServices++
     }
 } else {

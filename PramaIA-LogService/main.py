@@ -173,10 +173,10 @@ if __name__ == "__main__":
     maintenance_scheduler.start()
     
     # Avvia il server
-    logger.info(f"Avvio Uvicorn su {settings.host}:{settings.port}")
+    logger.info(f"Avvio Uvicorn su host {settings.host} e porta {settings.port}")
     uvicorn.run(
         app,
-        host=settings.host,
+        host="0.0.0.0", # Modifica per maggiore robustezza
         port=settings.port,
         reload=settings.debug
     )
