@@ -190,7 +190,7 @@ Write-Host ""
 # 1. Avvio Log Service (Opzionale)
 Write-Host "1. Log Service" -ForegroundColor Blue
 if (Test-Path "PramaIA-LogService") {
-    if (Start-PramaService -Name "Log Service" -Path "PramaIA-LogService" -Command "python main.py" -StartupDelay 5) { 
+    if (Start-PramaService -Name "Log Service" -Path "PramaIA-LogService" -Command ".\venv\Scripts\python.exe main.py" -StartupDelay 5) { 
         $optionalServices++
     }
 } else {
@@ -217,18 +217,8 @@ if (Test-Path "PramaIA-VectorstoreService") {
     Write-Host "   VectorStore Service non trovato" -ForegroundColor Yellow
 }
 
-# 4. Avvio PDF Monitor Agent (Opzionale)
-Write-Host "4. PDF Monitor Agent" -ForegroundColor Blue
-if (Test-Path "PramaIA-Agents\document-folder-monitor-agent") {
-    if (Start-PramaService -Name "PDF Monitor Agent" -Path "PramaIA-Agents\document-folder-monitor-agent" -Command "uvicorn src.main:app --host 0.0.0.0 --port $PLUGIN_PDF_MONITOR_PORT" -StartupDelay 5) { 
-        $optionalServices++
-    }
-} else {
-    Write-Host "   PDF Monitor Agent non trovato" -ForegroundColor Yellow
-}
-
-# 5. Avvio Reconciliation Service (Opzionale)
-Write-Host "5. Reconciliation Service" -ForegroundColor Blue
+# 4. Avvio Reconciliation Service (Opzionale)
+Write-Host "4. Reconciliation Service" -ForegroundColor Blue
 if (Test-Path "PramaIA-Reconciliation") {
     if (Start-PramaService -Name "Reconciliation Service" -Path "PramaIA-Reconciliation" -Command "python main.py" -StartupDelay 5) { 
         $optionalServices++
@@ -237,8 +227,8 @@ if (Test-Path "PramaIA-Reconciliation") {
     Write-Host "   Reconciliation Service non trovato" -ForegroundColor Yellow
 }
 
-# 6. Avvio Backend FastAPI (Critico)
-Write-Host "6. Backend FastAPI (Critico)" -ForegroundColor Magenta
+# 5. Avvio Backend FastAPI (Critico)
+Write-Host "5. Backend FastAPI (Critico)" -ForegroundColor Magenta
 if (Test-Path "PramaIAServer") {
     if (Start-PramaService -Name "Backend FastAPI" -Path "PramaIAServer" -Command "python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port $BACKEND_PORT" -StartupDelay 8 -Critical) { 
         $criticalServices++
@@ -249,6 +239,16 @@ if (Test-Path "PramaIAServer") {
     }
 } else {
     Write-Host "   Backend non trovato" -ForegroundColor Red
+}
+
+# 6. Avvio PDF Monitor Agent (Opzionale)
+Write-Host "6. PDF Monitor Agent" -ForegroundColor Blue
+if (Test-Path "PramaIA-Agents\document-folder-monitor-agent") {
+    if (Start-PramaService -Name "PDF Monitor Agent" -Path "PramaIA-Agents\document-folder-monitor-agent" -Command "uvicorn src.main:app --reload --host 0.0.0.0 --port $PLUGIN_PDF_MONITOR_PORT" -StartupDelay 5) { 
+        $optionalServices++
+    }
+} else {
+    Write-Host "   PDF Monitor Agent non trovato" -ForegroundColor Yellow
 }
 
 # 7. Avvio Frontend React (Critico)

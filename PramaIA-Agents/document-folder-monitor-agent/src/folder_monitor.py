@@ -75,10 +75,36 @@ class FolderMonitor:
     def start(self, folder):
         """
         Avvia il monitoraggio su una cartella specifica.
+        Se il monitoraggio per questa cartella è già attivo, lo riavvia.
         """
         if not os.path.isdir(folder):
             warning(f"Errore: La cartella '{folder}' non esiste.", details={"folder": folder, "action": "start_monitoring"})
             return
+
+        # Verifica se c'è già un observer attivo per questa cartella e rimuovilo
+        existing_observers = []
+        for i, observer in enumerate(self.observers):
+            try:
+                # Controlla se questo observer monitora già questa cartella
+                if hasattr(observer, '_watches'):
+                    for watch in observer._watches:
+                        if watch.path == folder:
+                            existing_observers.append(i)
+                            break
+            except (AttributeError, RuntimeError):
+                # Observer in stato inconsistente, rimuovilo
+                existing_observers.append(i)
+        
+        # Rimuovi observer esistenti per questa cartella (partendo dall'ultimo per non alterare gli indici)
+        for i in reversed(existing_observers):
+            old_observer = self.observers.pop(i)
+            try:
+                if hasattr(old_observer, 'is_alive') and old_observer.is_alive():
+                    old_observer.stop()
+                    old_observer.join(timeout=2)
+            except (AttributeError, RuntimeError):
+                pass  # Observer già in stato inconsistente
+            info(f"Rimosso observer esistente per {folder}")
 
         # Aggiungi alla configurazione se non presente
         if folder not in self.folders:
@@ -198,16 +224,19 @@ class FolderMonitor:
         """
         Ferma il monitoraggio su tutte le cartelle.
         """
+        self.running = False
         for observer in self.observers:
-            if observer.is_alive():
-                observer.stop()
-                observer.join()
+            try:
+                if hasattr(observer, 'is_alive') and observer.is_alive():
+                    observer.stop()
+                    observer.join(timeout=2)
+            except (AttributeError, RuntimeError):
+                pass  # Observer già in stato inconsistente
         
         # Svuota la lista degli observer
         self.observers = []
         
         info("Monitoraggio fermato.", details={"action": "monitoring_stopped"})
-        self.running = False
         
         # Notifica al server che il monitoraggio è stato fermato (percorsi aggiornati)
         self._notify_server()
@@ -301,7 +330,16 @@ class FolderMonitor:
             else:
                 warning(f"Cartella autostart non trovata: {folder}", details={"folder": folder, "action": "missing_folder"})
         
-        return len([obs for obs in self.observers if obs.is_alive()])
+        # Conta gli observer effettivamente vivi dopo l'avvio
+        alive_count = 0
+        for observer in self.observers:
+            try:
+                if hasattr(observer, 'is_alive') and observer.is_alive():
+                    alive_count += 1
+            except (AttributeError, RuntimeError):
+                pass
+        
+        return alive_count
 
     def get_documents(self):
         return list(set(self.document_list))
@@ -309,8 +347,10 @@ class FolderMonitor:
     def is_running(self):
         """
         Verifica se il monitoraggio è attivo.
+        Restituisce True se self.running è True, indipendentemente dallo stato degli observer.
+        Questo permette una transizione di stato corretta quando start() è chiamato.
         """
-        return self.running and any(observer.is_alive() for observer in self.observers)
+        return self.running
 
     def get_folders(self):
         return list(self.folders)
@@ -323,13 +363,58 @@ class FolderMonitor:
         """
         active_folders = []
         for observer in self.observers:
-            if observer.is_alive():
-                # Ottieni la cartella monitorata da questo observer
-                for watch in observer._watches:
-                    path = watch.path
-                    if path not in active_folders:
-                        active_folders.append(path)
+            try:
+                if hasattr(observer, '_started') and hasattr(observer, 'is_alive'):
+                    try:
+                        is_alive = observer.is_alive()
+                    except (AttributeError, RuntimeError):
+                        is_alive = False
+                    
+                    if is_alive:
+                        # Ottieni la cartella monitorata da questo observer
+                        if hasattr(observer, '_watches'):
+                            try:
+                                for watch in observer._watches:
+                                    path = watch.path
+                                    if path not in active_folders:
+                                        active_folders.append(path)
+                            except (AttributeError, TypeError):
+                                # _watches non è iterabile o non esiste
+                                continue
+            except (AttributeError, RuntimeError):
+                # Observer in stato inconsistente, ignora
+                continue
         return active_folders
+    
+    def _get_observer_health(self):
+        """
+        Restituisce un rapporto sulla salute degli observer per debug.
+        """
+        health = {
+            "total_observers": len(self.observers),
+            "running_flag": self.running,
+            "observers_status": []
+        }
+        
+        for i, observer in enumerate(self.observers):
+            status = {
+                "index": i,
+                "type": str(type(observer).__name__),
+                "has_is_alive": hasattr(observer, 'is_alive'),
+                "has_started": hasattr(observer, '_started'),
+                "is_alive": False,
+                "error": None
+            }
+            
+            try:
+                if hasattr(observer, 'is_alive'):
+                    status["is_alive"] = observer.is_alive()
+            except Exception as e:
+                status["error"] = str(e)
+            
+            health["observers_status"].append(status)
+        
+        return health
         
     def refresh_monitoring(self):
         """

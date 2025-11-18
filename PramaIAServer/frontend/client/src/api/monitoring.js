@@ -59,6 +59,21 @@ export const fetchDocumentMonitorClients = async () => {
 // Azioni di controllo reali
 export const startDocumentMonitorClient = async (client) => {
   // Avvia monitoraggio su tutte le cartelle già configurate
+  // Se non ci sono cartelle configurate, prova con l'endpoint autostart
+  if (!client.folders || client.folders.length === 0) {
+    console.log(`[API] Client ${client.name} non ha cartelle configurate, provo con autostart`);
+    try {
+      const autostartResp = await fetch(`${client.endpoint}/monitor/start-autostart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return autostartResp.json();
+    } catch (e) {
+      console.log(`[API] Endpoint autostart non disponibile per ${client.name}, provo con start normale`);
+      // Fallback all'endpoint normale
+    }
+  }
+  
   return fetch(`${client.endpoint}/monitor/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

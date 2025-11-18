@@ -208,19 +208,57 @@ class FolderConfig(BaseModel):
 def start_monitoring(config: FolderConfig):
     """
     Avvia il monitoraggio di una o più cartelle specifiche.
+    Se non vengono specificate cartelle, avvia il monitoraggio su tutte le cartelle autostart configurate.
     """
-    info(f"Comando ricevuto dal server: avvia monitoraggio sulle cartelle: {config.folder_paths}")
+    folder_paths = config.folder_paths
+    
+    # Se non sono state specificate cartelle, usa le cartelle autostart
+    if not folder_paths:
+        folder_paths = monitor.get_autostart_folders()
+        info(f"Nessuna cartella specificata, utilizzo cartelle autostart: {folder_paths}")
+    
+    if not folder_paths:
+        return {"status": "error", "message": "Nessuna cartella da monitorare specificata e nessuna cartella autostart configurata"}
+    
+    info(f"Comando ricevuto dal server: avvia monitoraggio sulle cartelle: {folder_paths}")
     started = []
     errors = []
-    for folder in config.folder_paths:
+    for folder in folder_paths:
         if not os.path.isdir(folder):
             errors.append(folder)
             continue
-        monitor.start(folder)
-        started.append(folder)
-    if errors:
-        raise HTTPException(status_code=404, detail=f"Le seguenti cartelle non esistono: {errors}")
-    return {"status": "success", "message": f"Monitoraggio avviato sulle cartelle: {started}"}
+        try:
+            monitor.start(folder)
+            started.append(folder)
+        except Exception as e:
+            warning(f"Errore avvio monitoraggio per {folder}: {e}")
+            errors.append(folder)
+    
+    if errors and not started:
+        raise HTTPException(status_code=404, detail=f"Nessuna cartella valida trovata. Cartelle non esistenti o non accessibili: {errors}")
+    elif errors:
+        return {"status": "partial_success", "message": f"Monitoraggio avviato su {len(started)} cartelle. Errori su: {errors}", "started": started, "errors": errors}
+    
+    return {"status": "success", "message": f"Monitoraggio avviato sulle cartelle: {started}", "started": started}
+
+@app.post("/monitor/start-autostart", tags=["Monitoring"])
+def start_autostart_folders():
+    """
+    Avvia il monitoraggio di tutte le cartelle configurate con autostart.
+    """
+    info("Comando ricevuto dal server: avvia monitoraggio cartelle autostart")
+    autostart_folders = monitor.get_autostart_folders()
+    
+    if not autostart_folders:
+        return {"status": "info", "message": "Nessuna cartella autostart configurata"}
+    
+    started = monitor.start_autostart_folders()
+    return {
+        "status": "success", 
+        "message": f"Monitoraggio autostart avviato su {started} cartelle: {autostart_folders}",
+        "started_count": started,
+        "folders": autostart_folders
+    }
 
 @app.post("/monitor/stop", tags=["Monitoring"])
 def stop_monitoring():
@@ -242,6 +280,22 @@ def get_monitor_status():
         "monitoring_folders": monitor.get_folders(),
         "detected_documents": monitor.get_documents(),
         "autostart_folders": monitor.get_autostart_folders()
+    }
+
+@app.get("/monitor/health", tags=["Maintenance"])
+def get_monitor_health():
+    """
+    Restituisce informazioni dettagliate sulla salute del monitor e degli observer.
+    Utile per debug e troubleshooting.
+    """
+    info("Richiesta stato di salute del monitor.")
+    health = monitor._get_observer_health()
+    return {
+        "status": "healthy" if monitor.is_running() else "stopped",
+        "is_running": monitor.is_running(),
+        "health_details": health,
+        "active_folders": monitor.get_active_folders(),
+        "all_folders": monitor.get_folders()
     }
 
 class AutostartConfig(BaseModel):
