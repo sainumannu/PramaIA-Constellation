@@ -1,0 +1,286 @@
+import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/appConfig';
+
+const ReconciliationTab = () => {
+  const [settings, setSettings] = useState({
+    schedule_enabled: true,
+    schedule_time: "03:00",
+    max_worker_threads: 4,
+    batch_size: 100
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  // Recupera le impostazioni attuali
+  const fetchSettings = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/database-management/vectorstore/settings`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || 'fake-token'}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Adattiamo al nuovo formato di risposta
+      setSettings(data);
+    } catch (error) {
+      console.error('Errore nel recuperare le impostazioni:', error);
+      setError(`Impossibile recuperare le impostazioni: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Salva le impostazioni
+  const saveSettings = async () => {
+    setSaveLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/database-management/vectorstore/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || 'fake-token'}`
+        },
+        body: JSON.stringify(settings)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      setSuccess("Impostazioni salvate con successo");
+    } catch (error) {
+      console.error('Errore nel salvare le impostazioni:', error);
+      setError(`Impossibile salvare le impostazioni: ${error.message}`);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  // Avvia una riconciliazione manuale
+  const startReconciliation = async () => {
+    if (!window.confirm('Sei sicuro di voler avviare una riconciliazione manuale?\nQuesto processo potrebbe richiedere tempo per completarsi.')) {
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/database-management/vectorstore/reconciliation/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || 'fake-token'}`
+        },
+        body: JSON.stringify({
+          delete_missing: window.confirm('Vuoi eliminare i documenti non più presenti nel filesystem?')
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setSuccess(`Riconciliazione avviata con successo. Job ID: ${data.job_id}`);
+    } catch (error) {
+      console.error('Errore nell\'avviare la riconciliazione:', error);
+      setError(`Impossibile avviare la riconciliazione: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carica le impostazioni all'avvio
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  // Gestisce i cambiamenti nei campi del form
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Gestisce l'invio del form
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    saveSettings();
+  };
+
+  return (
+    <div className="bg-white p-6 rounded shadow">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-blue-700 mb-2">Riconciliazione</h2>
+        <p className="text-gray-600">Gestisci le impostazioni di riconciliazione del vectorstore</p>
+      </div>
+
+      {/* Form di configurazione */}
+      <div className="bg-white border border-gray-200 p-4 rounded-lg mb-6">
+        <h3 className="text-lg font-semibold mb-4">Impostazioni di Riconciliazione</h3>
+        
+        <form onSubmit={handleSubmit}>
+          {/* Scheduler */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-2">Scheduler di Riconciliazione</h4>
+            
+            <div className="mb-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="schedule_enabled"
+                  name="schedule_enabled"
+                  checked={settings.schedule_enabled}
+                  onChange={handleChange}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <label htmlFor="schedule_enabled" className="ml-2 block text-sm text-gray-900">
+                  Abilita riconciliazione pianificata
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Quando abilitata, la riconciliazione verrà eseguita automaticamente all'orario specificato
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="schedule_time" className="block text-sm font-medium text-gray-700">
+                Orario di riconciliazione
+              </label>
+              <input
+                type="time"
+                id="schedule_time"
+                name="schedule_time"
+                value={settings.schedule_time}
+                onChange={handleChange}
+                disabled={!settings.schedule_enabled}
+                className="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                style={{ width: "120px" }}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Orario giornaliero in cui verrà eseguita la riconciliazione (formato 24h)
+              </p>
+            </div>
+          </div>
+          
+          {/* Impostazioni Avanzate */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-2">Impostazioni Avanzate</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="max_worker_threads" className="block text-sm font-medium text-gray-700">
+                  Thread di Lavoro Massimi
+                </label>
+                <input
+                  type="number"
+                  id="max_worker_threads"
+                  name="max_worker_threads"
+                  value={settings.max_worker_threads}
+                  onChange={handleChange}
+                  min="1"
+                  max="16"
+                  className="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  style={{ width: "80px" }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Numero massimo di thread per le operazioni di riconciliazione (1-16)
+                </p>
+              </div>
+              
+              <div>
+                <label htmlFor="batch_size" className="block text-sm font-medium text-gray-700">
+                  Dimensione Batch
+                </label>
+                <input
+                  type="number"
+                  id="batch_size"
+                  name="batch_size"
+                  value={settings.batch_size}
+                  onChange={handleChange}
+                  min="10"
+                  max="1000"
+                  className="mt-1 block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  style={{ width: "80px" }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Numero di documenti elaborati in un singolo batch (10-1000)
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Pulsanti */}
+          <div className="flex flex-wrap items-center gap-3 mt-6">
+            <button
+              onClick={startReconciliation}
+              type="button"
+              disabled={loading}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+            >
+              Avvia Riconciliazione Manuale
+            </button>
+            
+            <div className="flex ml-auto gap-2">
+              <button
+                type="button"
+                onClick={fetchSettings}
+                disabled={loading}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+              >
+                Annulla Modifiche
+              </button>
+              
+              <button
+                type="submit"
+                disabled={saveLoading}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                {saveLoading ? 'Salvataggio...' : 'Salva Impostazioni'}
+              </button>
+            </div>
+          </div>
+          
+          {error && (
+            <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          {success && (
+            <div className="mt-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+              {success}
+            </div>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ReconciliationTab;

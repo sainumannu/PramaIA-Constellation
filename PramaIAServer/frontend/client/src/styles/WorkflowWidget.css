@@ -1,0 +1,293 @@
+/* CSS per WorkflowWidget - Responsive e Ottimizzato */
+
+/* Container principale del widget */
+.workflow-widget {
+  @apply bg-white rounded-lg shadow p-4 w-full max-w-full overflow-hidden;
+}
+
+/* Header del widget */
+.workflow-widget-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.workflow-widget-title {
+  @apply text-lg font-semibold truncate pr-2 flex-1 min-w-0;
+}
+
+.workflow-widget-action-link {
+  @apply text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap flex-shrink-0 transition-colors;
+}
+
+/* Lista workflow attivi */
+.workflow-list {
+  @apply space-y-2 max-h-60 overflow-y-auto;
+}
+
+.workflow-item {
+  @apply bg-gray-50 rounded-lg p-2;
+}
+
+.workflow-item-header {
+  @apply flex items-center justify-between mb-1;
+}
+
+.workflow-item-title-container {
+  @apply flex-1 min-w-0 pr-2;
+}
+
+.workflow-item-title {
+  @apply font-medium text-sm truncate;
+}
+
+.workflow-item-actions {
+  @apply flex items-center space-x-1 flex-shrink-0;
+}
+
+.workflow-status-badge {
+  @apply text-xs text-green-600 bg-green-100 px-1.5 py-0.5 rounded font-medium;
+}
+
+.workflow-execute-btn {
+  @apply text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded p-1 text-sm transition-colors;
+}
+
+.workflow-item-description {
+  @apply text-xs text-gray-500 truncate;
+}
+
+/* Sezione esecuzioni recenti */
+.recent-executions {
+  @apply mt-6 pt-4 border-t;
+}
+
+.recent-executions-header {
+  @apply flex items-center justify-between mb-3;
+}
+
+.recent-executions-title {
+  @apply text-sm font-medium text-gray-700;
+}
+
+.recent-executions-list {
+  @apply space-y-2 max-h-40 overflow-y-auto;
+}
+
+.execution-item {
+  @apply bg-gray-50 rounded-lg p-2 border-l-4 border-gray-300;
+}
+
+.execution-item-header {
+  @apply flex items-start justify-between mb-1;
+}
+
+.execution-item-title-container {
+  @apply flex-1 min-w-0 pr-2;
+}
+
+.execution-item-title {
+  @apply font-medium text-xs truncate;
+}
+
+.execution-item-actions {
+  @apply flex items-center space-x-1 flex-shrink-0;
+}
+
+.execution-action-btn {
+  @apply hover:bg-blue-50 rounded p-0.5 text-xs transition-colors;
+}
+
+.execution-view-btn {
+  @apply text-blue-600 hover:text-blue-800;
+}
+
+.execution-retry-btn {
+  @apply text-orange-600 hover:text-orange-800 hover:bg-orange-50;
+}
+
+.execution-status-indicator {
+  @apply inline-block w-2 h-2 rounded-full;
+}
+
+.execution-status-completed {
+  @apply bg-green-500;
+}
+
+.execution-status-failed {
+  @apply bg-red-500;
+}
+
+.execution-status-running {
+  @apply bg-yellow-500 animate-pulse;
+}
+
+.execution-item-footer {
+  @apply flex items-center justify-between text-xs;
+}
+
+.execution-date {
+  @apply text-gray-500;
+}
+
+.execution-status-badge {
+  @apply px-1.5 py-0.5 rounded text-xs font-medium;
+}
+
+.execution-status-badge-completed {
+  @apply bg-green-100 text-green-700;
+}
+
+.execution-status-badge-failed {
+  @apply bg-red-100 text-red-700;
+}
+
+.execution-status-badge-running {
+  @apply bg-yellow-100 text-yellow-700;
+}
+
+.execution-status-badge-default {
+  @apply bg-gray-100 text-gray-700;
+}
+
+/* Media queries per responsive design */
+@media (max-width: 640px) {
+  .workflow-widget {
+    @apply p-3;
+  }
+  
+  .workflow-widget-title {
+    @apply text-base;
+  }
+  
+  .workflow-widget-action-link {
+    @apply text-xs;
+  }
+  
+  .workflow-item {
+    @apply p-1.5;
+  }
+  
+  .execution-item {
+    @apply p-1.5;
+  }
+  
+  .execution-item-actions {
+    @apply space-x-0.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .workflow-widget {
+    @apply p-2;
+  }
+  
+  .workflow-item-actions {
+    @apply space-x-0.5;
+  }
+  
+  .execution-item-actions {
+    @apply space-x-0;
+  }
+  
+  .workflow-execute-btn,
+  .execution-action-btn {
+    @apply p-0.5;
+  }
+}
+
+/* Stato di caricamento */
+.workflow-widget-loading {
+  @apply bg-white rounded-lg shadow p-6;
+}
+
+.workflow-widget-loading-title {
+  @apply text-lg font-semibold mb-4;
+}
+
+.workflow-widget-loading-skeleton {
+  @apply animate-pulse;
+}
+
+.workflow-widget-loading-skeleton > div {
+  @apply h-4 bg-gray-200 rounded mb-2;
+}
+
+.workflow-widget-loading-skeleton > div:last-child {
+  @apply mb-0;
+}
+
+/* Stato vuoto */
+.workflow-widget-empty {
+  @apply text-gray-500 text-center py-8;
+}
+
+.workflow-widget-empty p {
+  @apply mb-2;
+}
+
+.workflow-widget-empty a {
+  @apply text-blue-600 hover:text-blue-800 text-sm;
+}
+
+/* Animazioni */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effects migliorati */
+.workflow-item:hover {
+  @apply bg-gray-100 transition-colors duration-200;
+}
+
+.execution-item:hover {
+  @apply bg-gray-100 transition-colors duration-200;
+}
+
+/* Focus states per accessibilità */
+.workflow-execute-btn:focus,
+.execution-action-btn:focus,
+.workflow-widget-action-link:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+}
+
+/* Utility classes specifiche */
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Container con scroll personalizzato */
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 2px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 2px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}

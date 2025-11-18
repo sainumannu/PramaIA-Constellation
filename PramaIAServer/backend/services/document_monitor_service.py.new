@@ -1,0 +1,442 @@
+"""
+Servizio per gestire l'elaborazione dei documenti, rilevamento duplicati e operazioni sul vectorstore.
+Separa la logica di business dalla gestione delle richieste API.
+"""
+
+import os
+import json
+import logging
+import tempfile
+import uuid
+import hashlib
+from datetime import datetime
+from pathlib import Path
+import requests
+
+# Importa il client per il servizio hash
+from backend.services.file_hash_service import file_hash_service
+
+# Configurazione logger
+logger = logging.getLogger(__name__)
+
+async def check_file_duplicate(file_bytes: bytes, filename: str, client_id: str = "system", original_path: str = "") -> tuple:
+    """
+    Verifica se un file è un duplicato basandosi sul contenuto.
+    
+    Args:
+        file_bytes: I byte del contenuto del file
+        filename: Il nome del file
+        client_id: L'identificativo del client che ha inviato il file
+        original_path: Il percorso originale del file nel sistema del client
+        
+    Returns:
+        Tuple (is_duplicate, original_document_id, is_path_duplicate)
+    """
+    try:
+        # Utilizziamo il client del servizio hash per verificare i duplicati
+        is_duplicate, document_id, is_path_duplicate = file_hash_service.check_duplicate(
+            file_bytes=file_bytes,
+            filename=filename,
+            client_id=client_id,
+            original_path=original_path
+        )
+        
+        return is_duplicate, document_id, is_path_duplicate
+            
+    except Exception as e:
+        logger.error(f"Errore durante il controllo dei duplicati per il file '{filename}': {e}")
+        return False, None, False
+
+def save_file_hash(file_hash: str, filename: str, document_id: str, client_id: str = "system", original_path: str = ""):
+    """
+    Salva l'hash di un file tramite il servizio hash.
+    
+    Args:
+        file_hash: L'hash MD5 del file
+        filename: Il nome del file
+        document_id: L'ID del documento nel sistema
+        client_id: L'identificativo del client che ha inviato il file
+        original_path: Il percorso originale del file nel sistema del client
+        
+    Returns:
+        bool: True se il salvataggio è avvenuto con successo, False altrimenti
+    """
+    try:
+        # Crea i bytes dai quali ricalcolare l'hash per garantire che l'hash venga calcolato correttamente
+        # Questo è necessario solo perché la funzione richiede file_bytes invece che direttamente il file_hash
+        # In una versione futura del client dovremo modificare l'interfaccia per accettare direttamente il file_hash
+        dummy_bytes = b'placeholder'  # Questo è solo per conformarsi all'interfaccia attuale
+        
+        # Utilizziamo direttamente il metodo del client ma forniamo l'hash come parametro
+        success = file_hash_service.save_hash(
+            file_bytes=dummy_bytes,  # Questo verrà ignorato perché passiamo l'hash direttamente
+            filename=filename,
+            document_id=document_id,
+            client_id=client_id,
+            original_path=original_path,
+            file_hash_override=file_hash  # Parametro aggiuntivo che bypassa il calcolo dell'hash
+        )
+        
+        if success:
+            logger.info(f"Hash salvato con successo per il file '{filename}', document_id: {document_id}")
+        else:
+            logger.warning(f"Impossibile salvare l'hash per il file '{filename}', document_id: {document_id}")
+            
+        return success
+        
+    except Exception as e:
+        logger.error(f"Errore durante il salvataggio dell'hash: {e}")
+        return False
+
+async def process_document_with_pdk(file_bytes: bytes, filename: str, client_id: str = "system", original_path: str = ""):
+    """
+    Elabora un documento utilizzando il PDK e il plugin document-semantic-complete.
+    
+    Args:
+        file_bytes: I byte del documento
+        filename: Il nome del file
+        client_id: L'identificativo del client che ha inviato il file
+        original_path: Il percorso originale del file nel sistema del client
+        
+    Returns:
+        dict: Risultato dell'elaborazione con document_id e stato
+    """
+    try:
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Inizio elaborazione documento '{filename}' - Dimensione: {len(file_bytes)} bytes, Client: {client_id}, Path: {original_path}")
+        
+        # Configurazione PDK
+        PDK_PORT = int(os.getenv("PDK_SERVER_PORT", "3001"))
+        PDK_URL = os.getenv("PDK_SERVER_URL", f"http://localhost:{PDK_PORT}")
+        
+        # Usa il nodo di input del plugin document-semantic-complete
+        PLUGIN_ID = "document-semantic-complete-plugin"
+        NODE_ID = "document_input_node"
+        PDK_ENDPOINT = f"{PDK_URL}/plugins/{PLUGIN_ID}/execute"
+        
+        # Log dettagliato per debug
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] PDK Server URL: {PDK_URL}")
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Endpoint completo: {PDK_ENDPOINT}")
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Utilizzo il nodo {NODE_ID} del plugin {PLUGIN_ID} per processare il PDF")
+        
+        # Verifica se il file è un duplicato
+        is_duplicate, original_document_id, is_path_duplicate = await check_file_duplicate(file_bytes, filename, client_id, original_path)
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Risultato controllo duplicati: {is_duplicate}, document_id originale: {original_document_id or 'N/A'}, is_path_duplicate: {is_path_duplicate}")
+
+        # Salva temporaneamente il file per fornire un file_path al nodo
+        # Crea una directory temporanea se non esiste
+        temp_dir = os.path.join(os.getcwd(), "temp_files")
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Genera un nome di file univoco
+        temp_filename = f"{uuid.uuid4()}_{filename}"
+        temp_filepath = os.path.join(temp_dir, temp_filename)
+        
+        # Salva il file
+        with open(temp_filepath, "wb") as f:
+            f.write(file_bytes)
+            
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] File temporaneo salvato in: {temp_filepath}")
+
+        # Prepara i dati per il nodo Document Input
+        # Il nodo document_input_node del plugin document-semantic-complete-plugin richiede:
+        # - nodeId: ID del nodo da eseguire
+        # - inputs: oggetto vuoto (il nodo prende input dal file)
+        # - config: opzioni di configurazione per il nodo
+        
+        # Normalizza il percorso del file per evitare problemi di escape
+        normalized_path = os.path.normpath(temp_filepath)
+        
+        # Includi informazioni sul client e sul percorso originale nei metadati
+        payload = {
+            "nodeId": NODE_ID,
+            "inputs": {},
+            "config": {
+                "file_path": normalized_path.replace("\\", "/"),
+                "extract_text": True,
+                "extract_images": False,
+                "pages": "all",
+                "metadata": {
+                    "source": "document-monitor-plugin",
+                    "user_id": client_id,  # Usa il client_id fornito
+                    "filename": filename,
+                    "original_path": original_path,  # Includi il percorso originale
+                    "upload_timestamp": datetime.now().isoformat()
+                }
+            }
+        }
+        
+        # Per i file con JSON in multipart/form-data, dobbiamo convertire il payload in stringa
+        # e inviarlo come parte del form
+        # Usiamo ensure_ascii=False per evitare problemi con i caratteri non ASCII
+        payload_str = json.dumps(payload, ensure_ascii=False)
+        
+        # Invia sia il file che il payload JSON come parti del form multipart
+        # Determina il tipo MIME dal nome file
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(filename)
+        if not mime_type:
+            mime_type = "application/octet-stream"
+            
+        files = {"file": (filename, file_bytes, mime_type)}
+        form_data = {"json": payload_str}
+        
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Invio richiesta PDK con payload: {payload}")
+        
+        # Registra l'inizio della chiamata al PDK
+        pdk_request_start = datetime.now()
+        resp = requests.post(PDK_ENDPOINT, files=files, data=form_data, timeout=60)
+        pdk_request_end = datetime.now()
+        pdk_duration = (pdk_request_end - pdk_request_start).total_seconds()
+        
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Risposta PDK ricevuta in {pdk_duration:.2f} secondi - Status: {resp.status_code}")
+        
+        # Pulizia: rimuovi il file temporaneo
+        try:
+            os.remove(temp_filepath)
+            logger.debug(f"[PDK_VECTORSTORE_DEBUG] File temporaneo rimosso: {temp_filepath}")
+        except Exception as e:
+            logger.warning(f"[PDK_VECTORSTORE_DEBUG] Impossibile rimuovere il file temporaneo {temp_filepath}: {e}")
+        
+        if resp.status_code != 200:
+            logger.error(f"[PDK_VECTORSTORE_DEBUG] PDK non disponibile o workflow non trovato - Status code: {resp.status_code}")
+            if resp.text:
+                logger.error(f"[PDK_VECTORSTORE_DEBUG] Dettagli errore PDK: {resp.text[:500]}")
+            
+            return {
+                "status": "error",
+                "message": f"PDK non disponibile o workflow non trovato (status {resp.status_code})",
+                "is_duplicate": False
+            }
+        
+        # Processo la risposta
+        result = resp.json()
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Risposta completa dal PDK: {json.dumps(result, indent=2)}")
+        
+        # Estraiamo l'ID del documento - potrebbe essere in posizioni diverse nella risposta
+        document_id = None
+        if 'result' in result and isinstance(result['result'], dict):
+            # Cerca l'ID nelle possibili posizioni
+            if 'id' in result['result']:
+                document_id = result['result']['id']
+            elif 'document_id' in result['result']:
+                document_id = result['result']['document_id']
+            elif 'output' in result['result'] and isinstance(result['result']['output'], dict):
+                if 'id' in result['result']['output']:
+                    document_id = result['result']['output']['id']
+                elif 'document_id' in result['result']['output']:
+                    document_id = result['result']['output']['document_id']
+        
+        # Log dettagliato sul document_id
+        if document_id:
+            logger.debug(f"[PDK_VECTORSTORE_DEBUG] Document ID estratto dalla risposta PDK: {document_id}")
+        else:
+            logger.warning(f"[PDK_VECTORSTORE_DEBUG] Nessun Document ID trovato nella risposta PDK!")
+            
+        logger.info(f"✅ Documento '{filename}' processato dal workflow PDK con successo. Document ID: {document_id or 'N/A'}")
+        
+        # Se il file non è un duplicato o è un duplicato di contenuto ma non di percorso, salva l'hash nel database
+        if document_id and (not is_duplicate or (is_duplicate and not is_path_duplicate)):
+            # Calcola l'hash per salvarlo
+            file_hash = hashlib.md5(file_bytes).hexdigest()
+            
+            # Utilizza il servizio hash per salvare l'hash
+            success = file_hash_service.save_hash(
+                file_bytes=file_bytes,  # Il servizio ricalcolerà l'hash internamente
+                filename=filename,
+                document_id=document_id if not is_duplicate else original_document_id,
+                client_id=client_id,
+                original_path=original_path
+            )
+            logger.debug(f"[PDK_VECTORSTORE_DEBUG] Hash salvato nel servizio: {success}, filename={filename}, document_id={document_id}, client_id={client_id}")
+        
+        # Se è un duplicato, usa il document_id dell'originale
+        if is_duplicate:
+            document_id = original_document_id
+            logger.debug(f"[PDK_VECTORSTORE_DEBUG] Invio risposta con status=duplicate per '{filename}'")
+            
+            # Distingui tra duplicato esatto e duplicato di contenuto
+            duplicate_type = "exact_duplicate" if is_path_duplicate else "content_duplicate"
+            logger.warning(f"DUPLICATO RILEVATO: File '{filename}' è un {duplicate_type}! Document ID originale: {document_id}")
+            
+            # Invia una risposta più esplicita per i duplicati
+            duplicate_response = {
+                "status": "duplicate",
+                "message": f"Il documento '{filename}' è un duplicato di un file esistente.",
+                "document_id": document_id,
+                "is_duplicate": True,
+                "duplicate_type": duplicate_type,
+                "duplicate_detection_method": "md5_hash",
+                "client_id": client_id,
+                "original_path": original_path
+            }
+            
+            logger.debug(f"[PDK_VECTORSTORE_DEBUG] Risposta per duplicato: {duplicate_response}")
+            return duplicate_response
+        
+        # Verifica post-elaborazione se il documento è stato inserito nel vectorstore
+        try:
+            from backend.core.rag_vectorstore import get_vectorstore_status
+            vectorstore_status = get_vectorstore_status()
+            logger.debug(f"[PDK_VECTORSTORE_DEBUG] Stato vectorstore dopo elaborazione: {vectorstore_status}")
+        except Exception as vs_error:
+            logger.error(f"[PDK_VECTORSTORE_DEBUG] Errore verifica stato vectorstore: {vs_error}")
+        
+        logger.debug(f"[PDK_VECTORSTORE_DEBUG] Elaborazione documento completata con successo - Documento: '{filename}', Document ID: {document_id}, Client: {client_id}")
+        
+        return {
+            "status": "success", 
+            "message": f"Documento '{filename}' ricevuto e processato dal workflow PDK.", 
+            "document_id": document_id,
+            "workflow_result": result,
+            "is_duplicate": False,
+            "client_id": client_id,
+            "original_path": original_path
+        }
+        
+    except Exception as e:
+        logger.error(f"[PDK_VECTORSTORE_DEBUG] ❌ Errore durante l'elaborazione del documento '{filename}': {e}", exc_info=True)
+        return {
+            "status": "error",
+            "message": f"Errore durante l'elaborazione del documento: {str(e)}",
+            "is_duplicate": False,
+            "client_id": client_id,
+            "original_path": original_path
+        }
+
+async def query_document_semantic_search(query: str, top_k: int = 3, client_id: str = "system"):
+    """
+    Esegue una query semantica sui documenti indicizzati.
+    
+    Args:
+        query: La query testuale da cercare
+        top_k: Numero di risultati da restituire
+        client_id: ID del client che esegue la query
+        
+    Returns:
+        dict: Risultati della ricerca
+    """
+    try:
+        PDK_PORT = int(os.getenv("PDK_SERVER_PORT", "3001"))
+        PDK_URL = os.getenv("PDK_SERVER_URL", f"http://localhost:{PDK_PORT}")
+        
+        # Usa il nodo di query del plugin document-semantic-complete
+        PLUGIN_ID = "document-semantic-complete-plugin"
+        NODE_ID = "query_input_node"
+        PDK_ENDPOINT = f"{PDK_URL}/plugins/{PLUGIN_ID}/execute"
+
+        logger.info(f"Esecuzione query semantica: '{query}' (top_k={top_k}, client_id={client_id})")
+        
+        # Prepara i dati per il nodo di query
+        data = {
+            "nodeId": NODE_ID,
+            "inputs": {},
+            "config": {
+                "default_query": query,
+                "top_k": top_k,
+                "user_id": client_id
+            }
+        }
+        
+        resp = requests.post(PDK_ENDPOINT, json=data, timeout=30)
+        
+        if resp.status_code != 200:
+            return {
+                "status": "error",
+                "message": f"PDK query fallita (status {resp.status_code})",
+                "query": query,
+                "client_id": client_id
+            }
+        
+        result = resp.json()
+        logger.info(f"✅ Query semantica completata. Trovati {len(result.get('documents', []))} documenti simili.")
+        
+        return {
+            "status": "success",
+            "query": query,
+            "results": result,
+            "client_id": client_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Errore durante l'interrogazione semantica: {e}")
+        return {
+            "status": "error",
+            "message": f"Errore durante l'interrogazione semantica: {str(e)}",
+            "query": query,
+            "client_id": client_id
+        }
+
+def get_registered_files_count():
+    """
+    Conta il numero di file registrati tramite il servizio hash.
+    
+    Returns:
+        dict: Informazioni sul numero di file registrati
+    """
+    try:
+        # Implementazione temporanea - in futuro si utilizzerà l'API del servizio
+        # In questa fase di transizione, restituiamo valori approssimativi
+        return {
+            "unique_files": 0,  # Verrà implementato in futuro
+            "total_entries": 0  # Verrà implementato in futuro
+        }
+    except Exception as e:
+        logger.error(f"Errore durante il conteggio dei file registrati: {e}")
+        return {"unique_files": 0, "total_entries": 0}
+
+def get_vectorstore_status():
+    """
+    Ottiene lo stato attuale del vectorstore.
+    
+    Returns:
+        dict: Informazioni sullo stato del vectorstore e file registrati
+    """
+    try:
+        from backend.core.rag_vectorstore import get_vectorstore_status as core_get_status
+        vectorstore_status = core_get_status()
+        
+        # Ottieni anche i conteggi dei file registrati
+        registered_files = get_registered_files_count()
+        
+        # Combina le informazioni
+        combined_status = {
+            **vectorstore_status,
+            "registered_files": registered_files
+        }
+        
+        return combined_status
+    except Exception as e:
+        logger.error(f"Errore nel recupero dello stato del vectorstore: {e}")
+        return {"error": str(e)}
+
+def _get_file_type_name(extension: str) -> str:
+    """
+    Converte l'estensione del file in un nome comprensibile.
+    
+    Args:
+        extension: Estensione del file (.pdf, .txt, ecc.)
+        
+    Returns:
+        str: Nome del tipo di file
+    """
+    type_map = {
+        '.pdf': 'PDF',
+        '.txt': 'testo',
+        '.docx': 'Word',
+        '.doc': 'Word',
+        '.md': 'Markdown',
+        '.xlsx': 'Excel',
+        '.xls': 'Excel',
+        '.pptx': 'PowerPoint',
+        '.ppt': 'PowerPoint',
+        '.jpg': 'immagine JPEG',
+        '.jpeg': 'immagine JPEG',
+        '.png': 'immagine PNG',
+        '.gif': 'immagine GIF',
+        '.py': 'Python',
+        '.js': 'JavaScript',
+        '.html': 'HTML',
+        '.css': 'CSS',
+        '.json': 'JSON'
+    }
+    return type_map.get(extension.lower(), extension.upper())

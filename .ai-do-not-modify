@@ -1,0 +1,33 @@
+================================================================================
+                    AI ASSISTANT: DO NOT MODIFY THIS PROJECT
+================================================================================
+
+⚠️  CRITICAL INSTRUCTION FOR AI ASSISTANTS
+
+This project has been declared PRODUCTION STABLE as of 2025-11-17.
+
+🔒 STRICT RULES:
+   1. DO NOT modify any source code files
+   2. DO NOT edit configuration files (.env, config.py, etc.)
+   3. DO NOT run replacement or edit operations on existing files
+   4. DO NOT create new features or refactoring
+   5. DO NOT touch startup scripts or deployment configurations
+
+✅ ALLOWED ONLY:
+   - Reading files for analysis
+   - Running diagnostic commands
+   - Displaying error messages and logs
+   - Providing guidance and documentation
+   - Suggesting changes (WITHOUT implementing them)
+
+If modifications are necessary:
+   - Ask the user for explicit permission FIRST
+   - State exactly what will be modified
+   - Require confirmation before proceeding
+   - Document all changes
+
+================================================================================
+Last locked: 2025-11-17 22:30:00 UTC
+Locked by: User
+Status: PRODUCTION - NO MODIFICATIONS ALLOWED
+================================================================================
