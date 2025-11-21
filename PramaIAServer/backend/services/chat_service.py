@@ -4,7 +4,7 @@ from backend.db import models # Aggiorna l'importazione dei modelli
 from backend.db.models import Message  # Importa esplicitamente Message
 # import uuid # uuid non sembra essere usato qui direttamente
 from langchain_community.llms import OpenAI
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from backend.db.models import User as DBUser
 # from backend.db.models import Message  # Import Message model
 from backend.utils import get_logger

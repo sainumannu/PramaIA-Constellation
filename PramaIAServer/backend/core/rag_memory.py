@@ -1,5 +1,5 @@
 import logging
-from langchain.memory import ConversationBufferMemory
+from langchain_classic.memory import ConversationBufferMemory
 
 logger = logging.getLogger(__name__)
 

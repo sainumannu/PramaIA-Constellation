@@ -5,7 +5,7 @@ from datetime import datetime
 import chromadb
 from langchain_community.vectorstores import Chroma
 from langchain.embeddings.base import Embeddings # Per il type hinting
-from langchain.docstore.document import Document # Per il type hinting
+from langchain_core.documents import Document
 
 from backend.core.config import RAG_INDEXES_DIR, RAG_DATA_DIR
 from backend.core.rag_chains_prompts import get_openai_embeddings

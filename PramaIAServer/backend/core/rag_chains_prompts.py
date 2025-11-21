@@ -1,11 +1,11 @@
 import logging
 from typing import Optional
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+
+from langchain_core.prompts import PromptTemplate
+from langchain_classic.chains import LLMChain, ConversationalRetrievalChain
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
+from langchain_classic.memory import ConversationBufferMemory
 from langchain_community.vectorstores import Chroma # Per il type hinting del retriever
 import openai
 
