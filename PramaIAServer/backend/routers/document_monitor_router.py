@@ -20,7 +20,7 @@ from ..services.document_monitor_service import (
     _get_file_type_name
 )
 
-router = APIRouter(prefix="/api/document-monitor", tags=["document-monitor"])
+router = APIRouter(tags=["document-monitor"])
 logger = logging.getLogger(__name__)
 
 class QueryRequest(BaseModel):
