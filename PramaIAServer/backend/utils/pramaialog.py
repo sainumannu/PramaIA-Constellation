@@ -101,7 +101,7 @@ class PramaIALogger:
         if host:
             resolved_host = host
         else:
-            resolved_host = os.getenv('PRAMAIALOG_HOST') or os.getenv('BACKEND_URL') or 'http://localhost:8081'
+            resolved_host = os.getenv('PRAMAIALOG_HOST') or 'http://localhost:8081'
         # Se PRAMAIALOG_PORT è impostata e resolved_host non contiene già una porta, aggiungila
         port_env = os.getenv('PRAMAIALOG_PORT')
         if port_env and ':' not in resolved_host.split('//')[-1]:

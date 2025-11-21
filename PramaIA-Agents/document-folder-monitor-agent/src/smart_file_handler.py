@@ -370,18 +370,11 @@ class SmartFileHandler(FileSystemEventHandler):
             )
             
             import requests
-            # Risolvi BACKEND URL preferendo BACKEND_URL -> PRAMAIALOG_HOST(+PORT) -> BACKEND_BASE_URL -> fallback
+            # Risolvi BACKEND URL con priorità: BACKEND_URL -> BACKEND_BASE_URL -> BACKEND_HOST+PORT -> fallback
             backend_base = os.getenv("BACKEND_URL")
             if not backend_base:
-                pra_host = os.getenv("PRAMAIALOG_HOST")
-                pra_port = os.getenv("PRAMAIALOG_PORT")
-                if pra_host:
-                    if not pra_host.startswith(("http://", "https://")):
-                        pra_host = f"http://{pra_host}"
-                    if pra_port and not pra_host.rstrip('/').split(':')[-1].isdigit():
-                        pra_host = f"{pra_host.rstrip('/') }:{pra_port}"
-                    backend_base = pra_host
-                else:
+                backend_base = os.getenv("BACKEND_BASE_URL")
+                if not backend_base:
                     backend_port = os.getenv("BACKEND_PORT", "8000")
                     backend_base = os.getenv("BACKEND_BASE_URL", f"http://localhost:{backend_port}")
 

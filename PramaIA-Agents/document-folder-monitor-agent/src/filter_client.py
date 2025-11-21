@@ -18,22 +18,17 @@ class AgentFilterClient:
     """
     
     def __init__(self, backend_url: Optional[str] = None):
-        # Risolvi backend URL con priorità: BACKEND_URL -> PRAMAIALOG_HOST(+PORT) -> BACKEND_BASE_URL -> fallback
+        # Risolvi backend URL con priorità: BACKEND_URL -> BACKEND_BASE_URL -> BACKEND_HOST+PORT -> fallback
         if backend_url:
             resolved = backend_url
         else:
             resolved = os.getenv("BACKEND_URL")
             if not resolved:
-                pra_host = os.getenv("PRAMAIALOG_HOST")
-                pra_port = os.getenv("PRAMAIALOG_PORT")
-                if pra_host:
-                    if not pra_host.startswith(("http://", "https://")):
-                        pra_host = f"http://{pra_host}"
-                    if pra_port and not pra_host.rstrip('/').split(':')[-1].isdigit():
-                        pra_host = f"{pra_host.rstrip('/') }:{pra_port}"
-                    resolved = pra_host
-                else:
-                    resolved = os.getenv("BACKEND_BASE_URL", "http://localhost:8000")
+                resolved = os.getenv("BACKEND_BASE_URL")
+                if not resolved:
+                    backend_host = os.getenv("BACKEND_HOST", "localhost")
+                    backend_port = os.getenv("BACKEND_PORT", "8000")
+                    resolved = f"http://{backend_host}:{backend_port}"
 
         self.backend_url = resolved
         self.filters_endpoint = f"{self.backend_url}/api/agent-filters"
