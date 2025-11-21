@@ -1,0 +1,7 @@
+watchdog
+pdfplumber
+sentence-transformers
+qdrant-client
+fastapi
+uvicorn
+python-dotenv

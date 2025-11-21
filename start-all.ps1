@@ -13,21 +13,41 @@ Write-Host "==========================================" -ForegroundColor Green
 
 # Funzione per fermare i servizi esistenti
 function Stop-ExistingServices {
-    param([string[]]$ServiceNames)
+    param([string[]]$ServiceNames, [int[]]$Ports)
 
     Write-Host "Verifica e arresto dei servizi esistenti..." -ForegroundColor Yellow
     
+    # 1. Ferma le finestre PowerShell con titoli specifici
     $processes = Get-Process -Name "powershell" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -in $ServiceNames }
     
     if ($processes) {
         foreach ($proc in $processes) {
-            Write-Host "   Trovato servizio in esecuzione: $($proc.MainWindowTitle). Arresto in corso..." -ForegroundColor Gray
+            Write-Host "   Trovato servizio PowerShell: $($proc.MainWindowTitle). Arresto in corso..." -ForegroundColor Gray
             Stop-Process -Id $proc.Id -Force
         }
-        Write-Host "   Pulizia completata." -ForegroundColor Green
-    } else {
-        Write-Host "   Nessun servizio PramaIA trovato in esecuzione." -ForegroundColor Green
     }
+    
+    # 2. Ferma tutti i processi che occupano le porte specificate
+    foreach ($port in $Ports) {
+        try {
+            $connections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+            foreach ($conn in $connections) {
+                $processId = $conn.OwningProcess
+                $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+                if ($process) {
+                    Write-Host "   Uccisione processo sulla porta ${port}: PID $processId ($($process.ProcessName))" -ForegroundColor Gray
+                    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+                }
+            }
+        } catch {
+            # Porta non in uso, ignora
+        }
+    }
+    
+    # 3. Aspetta che le porte si liberino
+    Start-Sleep -Seconds 2
+    
+    Write-Host "   Pulizia completata." -ForegroundColor Green
     Write-Host ""
 }
 
@@ -41,7 +61,11 @@ $serviceNames = @(
     "Backend FastAPI",
     "Frontend React"
 )
-Stop-ExistingServices -ServiceNames $serviceNames
+
+# Lista delle porte da liberare
+$servicePorts = @(8000, 8001, 8081, 8090, 8091, 3000, 3001)
+
+Stop-ExistingServices -ServiceNames $serviceNames -Ports $servicePorts
 
 
 # Controllo prerequisiti

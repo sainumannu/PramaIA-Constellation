@@ -1,0 +1,26 @@
+# Ignora file di database SQLite
+*.db
+
+# Ignora file di cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignora file temporanei
+*.bak
+*.tmp
+*.temp
+*.log
+*~
+Thumbs.db
+.DS_Store
+
+# Ignora file di ambiente
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Ignora file di configurazione specifici dell'utente
+pdf-folder-monitor-plugin/monitor_config.json

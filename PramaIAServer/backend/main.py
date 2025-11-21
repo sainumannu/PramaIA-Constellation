@@ -40,6 +40,9 @@ from backend.api.folder_sync_router import router as folder_sync_router
 # Import per il router di compatibilità documenti
 from backend.api.documents_compatibility_router import router as documents_compatibility_router
 
+# Import per il document monitor router
+from backend.routers.document_monitor_router import router as document_monitor_router
+
 # Import per il PDK router (ora utilizzato attivamente)
 # (Gestito tramite importazione normale sopra)
 
@@ -127,6 +130,8 @@ try:
     logger.info("llm_router incluso.")
     app.include_router(plugins_router)  # <-- AGGIUNTO: espone /api/pdf-monitor/clients
     logger.info("plugins_router incluso.")
+    app.include_router(document_monitor_router, prefix="/api/document-monitor", tags=["document-monitor"])  # Router per document monitor agent
+    logger.info("document_monitor_router incluso.")
     app.include_router(pdf_monitor_compatibility_router)  # Nuovo endpoint ricezione PDF dal plugin
     logger.info("pdf_monitor_compatibility_router incluso.")
     app.include_router(pdk_router, prefix="/api/workflows", tags=["pdk"])  # Router PDK per gestire nodi dinamici

@@ -450,6 +450,111 @@ async def rescan_all_monitored_folders():
         error(traceback.format_exc())
         return {"status": "error", "message": f"Errore durante la scansione completa: {str(e)}"}
 
+# --- Worker per processare ed inviare eventi dal buffer ---
+def event_sender_worker():
+    """
+    Worker che processa continuamente gli eventi dal buffer e li invia al backend.
+    Gira in background e processa eventi con status 'aggiunto' o 'pending'.
+    """
+    import sqlite3
+    from pathlib import Path
+    
+    # Path corretto al database nella directory del monitor agent
+    db_path = Path(__file__).parent.parent / "event_buffer.db"
+    
+    while True:
+        try:
+            # Aspetta 5 secondi tra un ciclo e l'altro
+            time.sleep(5)
+            if not db_path.exists():
+                continue
+                
+            conn = sqlite3.connect(str(db_path))
+            cursor = conn.cursor()
+            
+            # Cerca eventi da processare
+            cursor.execute("""
+                SELECT id, event_type, file_name, folder, metadata
+                FROM events 
+                WHERE status IN ('aggiunto', 'pending') AND sent = 0
+                LIMIT 10
+            """)
+            
+            events = cursor.fetchall()
+            conn.close()
+            
+            if not events:
+                continue
+            
+            # Processa ogni evento
+            for event in events:
+                event_id, event_type, file_name, folder, metadata = event
+                file_path = os.path.join(folder, file_name)
+                
+                # Verifica che il file esista ancora
+                if not os.path.exists(file_path):
+                    # Marca evento come failed
+                    conn = sqlite3.connect(str(db_path))
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE events SET status = 'failed', error_message = ? WHERE id = ?",
+                                 ("File non trovato", event_id))
+                    conn.commit()
+                    conn.close()
+                    warning(f"[WORKER] File non trovato: {file_name}")
+                    continue
+                
+                # Invia al backend
+                try:
+                    backend_base = os.getenv("BACKEND_URL")
+                    if not backend_base:
+                        backend_host = os.getenv("BACKEND_HOST", "localhost")
+                        backend_port = os.getenv("BACKEND_PORT", "8000")
+                        backend_base = f"http://{backend_host}:{backend_port}"
+                    
+                    upload_url = f"{backend_base}/api/document-monitor/upload/"
+                    
+                    with open(file_path, "rb") as f:
+                        files = {"file": (file_name, f)}
+                        data = {
+                            "action": event_type,
+                            "full_path": file_path,
+                            "relative_path": file_name
+                        }
+                        
+                        resp = requests.post(upload_url, files=files, data=data, timeout=30)
+                    
+                    if resp.status_code == 200:
+                        # Successo - marca come inviato
+                        conn = sqlite3.connect(str(db_path))
+                        cursor = conn.cursor()
+                        cursor.execute("UPDATE events SET status = 'completed', sent = 1 WHERE id = ?", (event_id,))
+                        conn.commit()
+                        conn.close()
+                        info(f"[WORKER] Evento {event_id} inviato con successo: {file_name}")
+                    else:
+                        # Errore - marca come failed
+                        conn = sqlite3.connect(str(db_path))
+                        cursor = conn.cursor()
+                        cursor.execute("UPDATE events SET status = 'failed', error_message = ? WHERE id = ?",
+                                     (f"HTTP {resp.status_code}", event_id))
+                        conn.commit()
+                        conn.close()
+                        error(f"[WORKER] Errore invio evento {event_id}: HTTP {resp.status_code}")
+                        
+                except Exception as e:
+                    # Errore - marca come failed
+                    conn = sqlite3.connect(str(db_path))
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE events SET status = 'failed', error_message = ? WHERE id = ?",
+                                 (str(e)[:200], event_id))
+                    conn.commit()
+                    conn.close()
+                    error(f"[WORKER] Errore invio evento {event_id}: {e}")
+                    
+        except Exception as e:
+            error(f"[WORKER] Errore nel worker eventi: {e}")
+            time.sleep(10)  # Aspetta più a lungo in caso di errore
+
 # --- Job di manutenzione per pulizia eventi ---
 def event_maintenance_job():
     """
@@ -474,13 +579,42 @@ def event_maintenance_job():
             # Continua comunque con il prossimo ciclo
             continue
 
+# Avvia il worker per processare ed inviare eventi
+sender_thread = threading.Thread(target=event_sender_worker, daemon=True)
+sender_thread.start()
+info("[STARTUP] Event sender worker avviato")
+
 # Avvia il job di manutenzione degli eventi in un thread separato
 maintenance_thread = threading.Thread(target=event_maintenance_job, daemon=True)
 maintenance_thread.start()
+info("[STARTUP] Event maintenance job avviato")
 
 # Avvia il job di pulizia del database hash
 from .hash_db_cleaner import hash_db_cleaner
 hash_db_cleaner.start()
+
+# Funzione per avviare il monitoraggio delle cartelle configurate con autostart
+def start_autostart_monitoring():
+    info("[AUTOSTART] Avvio monitoraggio cartelle autostart...")
+    try:
+        num_started = monitor.start_autostart_folders()
+        if num_started > 0:
+            info(f"[AUTOSTART] Avviate {num_started} cartelle con autostart")
+        else:
+            info("[AUTOSTART] Nessuna cartella autostart configurata")
+    except Exception as e:
+        error(f"[AUTOSTART] Errore durante l'avvio delle cartelle autostart: {e}")
+
+# Avvia il monitoraggio delle cartelle autostart dopo un breve ritardo
+def delayed_autostart():
+    # Aspetta 5 secondi per dare tempo al sistema di inizializzarsi
+    time.sleep(5)
+    start_autostart_monitoring()
+
+# Avvia un thread separato per l'autostart
+autostart_thread = threading.Thread(target=delayed_autostart, daemon=True)
+autostart_thread.start()
+info("[STARTUP] Autostart thread avviato")
 
 # Qui potrai aggiungere altre route FastAPI (es: /semantic-search, /events, ...)
 
