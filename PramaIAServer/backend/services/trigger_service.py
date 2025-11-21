@@ -40,6 +40,7 @@ class TriggerService:
         """
         try:
             # Log dell'evento ricevuto
+            logger.info(f"🚀 [TriggerService.process_event] STARTED! event_type={event_type}")
             logger.info(f"Processing event: {event_type}")
             
             # Trova i trigger corrispondenti
@@ -83,29 +84,48 @@ class TriggerService:
         """
         source = metadata.get("source") if metadata else None
         
+        logger.info(f"🔍 [TRIGGER_MATCH] Looking for triggers:")
+        logger.info(f"    event_type: '{event_type}'")
+        logger.info(f"    source: '{source}'")
+        logger.info(f"    metadata: {metadata}")
+        
         # Ottieni tutti i trigger attivi
         all_triggers = crud.get_all_triggers(self.db)
+        logger.info(f"🔍 [TRIGGER_MATCH] Found {len(all_triggers)} total triggers")
         
         # Filtra per event_type e source
         matching_triggers = []
-        for trigger in all_triggers:
+        for i, trigger in enumerate(all_triggers):
+            logger.info(f"🔍 [TRIGGER_MATCH] Checking trigger #{i+1}:")
+            logger.info(f"    name: {trigger.get('name')}")
+            logger.info(f"    event_type: '{trigger.get('event_type')}'")
+            logger.info(f"    source: '{trigger.get('source')}'")
+            logger.info(f"    active: {trigger.get('active', True)}")
+            
             # Controlla se il trigger è attivo
             if not trigger.get("active", True):
+                logger.info(f"    ❌ SKIPPED: trigger not active")
                 continue
             
             # Controlla event_type
             if trigger.get("event_type") != event_type:
+                logger.info(f"    ❌ SKIPPED: event_type mismatch ('{trigger.get('event_type')}' != '{event_type}')")
                 continue
             
             # Controlla source (None significa qualsiasi source)
             trigger_source = trigger.get("source")
             if trigger_source and source and trigger_source != source:
+                logger.info(f"    ❌ SKIPPED: source mismatch ('{trigger_source}' != '{source}')")
                 continue
             
             # Valuta le condizioni
             if self._evaluate_trigger_conditions(trigger, data, metadata):
+                logger.info(f"    ✅ MATCHED: trigger conditions passed")
                 matching_triggers.append(trigger)
+            else:
+                logger.info(f"    ❌ SKIPPED: trigger conditions failed")
         
+        logger.info(f"🎯 [TRIGGER_MATCH] Result: {len(matching_triggers)} matching triggers")
         return matching_triggers
     
     def _evaluate_trigger_conditions(self, trigger: Dict[str, Any], data: Dict[str, Any], 
@@ -300,26 +320,27 @@ class TriggerService:
                         metadata: Optional[Dict[str, Any]], triggers_matched: int,
                         workflows_executed: int, success: bool, error_message: Optional[str]):
         """
-        Salva il log dell'evento processato
-        
-        NOTA: La tabella event_logs non esiste ancora. Per ora logghiamo solo su file.
-        TODO: Implementare event logging nel database quando la tabella sarà creata.
+        Salva il log dell'evento processato nel database
         """
         try:
             source = metadata.get("source") if metadata else None
-            log_entry = {
-                "event_type": event_type,
-                "source": source,
-                "triggers_matched": triggers_matched,
-                "workflows_executed": workflows_executed,
-                "success": success,
-                "error_message": error_message,
-                "timestamp": datetime.now().isoformat()
-            }
-            logger.info(f"Event processed: {log_entry}")
+            
+            # Crea e salva il log nel database
+            event_log = crud.create_event_log(
+                self.db,
+                event_type=event_type,
+                source=source,
+                data=data,
+                triggers_matched=triggers_matched,
+                workflows_executed=workflows_executed,
+                success=success,
+                error_message=error_message
+            )
+            
+            logger.info(f"✅ Event logged to database: {event_type} (ID: {event_log.get('id')})")
             
         except Exception as e:
-            logger.error(f"Error logging event: {str(e)}")
+            logger.error(f"Error logging event to database: {str(e)}")
 
 
 # Funzioni di utilità per la compatibilità con l'API esistente

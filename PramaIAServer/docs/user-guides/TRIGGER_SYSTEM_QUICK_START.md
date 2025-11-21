@@ -11,28 +11,29 @@ Benvenuto nel nuovo sistema trigger avanzato di PramaIA! Questa guida ti aiuter�
 # Verifica versioni
 python --version  # Python 3.9+
 node --version    # Node.js 16+
-psql --version    # PostgreSQL 12+
+sqlite3 --version # SQLite 3.35+
 ```
 
-### 2. **Migrazione Database**
-```bash
-cd PramaIAServer
-python -m alembic upgrade head
-```
+### 2. **Database**
+Il sistema utilizza SQLite per la configurazione dei trigger. Il database è già inizializzato e contiene 3 trigger predefiniti in `backend/db/database.db`.
 
 ### 3. **Avvio Servizi**
 ```bash
+# Dall'interno della directory PramaIA
+.\start-all.ps1
+
+# O manualmente:
 # Terminal 1: Backend
 cd PramaIAServer
-python -m uvicorn backend.main:app --reload
+python -m uvicorn backend.main:app --reload --port 8000
 
 # Terminal 2: Frontend  
 cd PramaIAServer/frontend/client
-npm start
+npm start  # port 3000
 
 # Terminal 3: PDK Server
-cd PramaIA-PDK
-node server/plugin-api-server.js
+cd PramaIA-PDK/server
+node plugin-api-server.js  # port 3001
 ```
 
 ## 🎯 Creazione del Primo Trigger Avanzato
@@ -43,12 +44,30 @@ node server/plugin-api-server.js
 3. Clicca **"Nuovo Trigger"**
 
 ### Passo 2: Configura il Trigger
+I trigger sono già predefiniti nel sistema:
+
 ```yaml
-Nome: "Monitor PDF Intelligente"
-Descrizione: "Monitora cartella PDF con routing specifico"
-Workflow: [Seleziona il tuo workflow]
-Event Source: "pdf-monitor-event-source"
-Evento: "Qualsiasi Modifica"  # 🆕 Nuovo evento!
+Trigger 1: "Trigger Aggiunta PDF"
+  Workflow: PDF Document CREATE Pipeline (wf_bd11290f923b)
+  Event Source: pdf-monitor-event-source
+  Evento: pdf_file_added
+  Nodo Target: pdf_input_validator
+  Status: ✅ Abilitato
+
+Trigger 2: "Trigger Eliminazione PDF"
+  Workflow: PDF Document DELETE Pipeline (wf_b32ead12131c)
+  Event Source: pdf-monitor-event-source
+  Evento: pdf_file_deleted
+  Nodo Target: pdf_input_validator
+  Status: ✅ Abilitato
+
+Trigger 3: "Trigger Aggiornamento PDF"
+  Workflow: PDF Document UPDATE Pipeline (wf_055bf5029833)
+  Event Source: pdf-monitor-event-source
+  Evento: pdf_file_modified
+  Nodo Target: pdf_input_validator
+  Status: ✅ Abilitato
+```
 ```
 
 ### Passo 3: Seleziona Nodo Target
@@ -84,15 +103,39 @@ const compatibleNodes = availableNodes.filter(node =>
 );
 ```
 
-### 📊 **Evento "Qualsiasi Modifica"**
+### 📊 **Evento "File PDF Aggiunto"**
 ```json
 {
-  "eventType": "any_change",
+  "eventType": "pdf_file_added",
   "data": {
     "file_path": "/path/to/file.pdf",
-    "change_type": "created",  // created|modified|deleted
-    "detected_at": "2025-08-05T10:30:00Z",
-    "file_size": 1024
+    "file_name": "documento.pdf",
+    "file_size": 1024,
+    "detected_at": "2025-11-19T10:30:00Z"
+  }
+}
+```
+
+### 📊 **Evento "File PDF Modificato"**
+```json
+{
+  "eventType": "pdf_file_modified",
+  "data": {
+    "file_path": "/path/to/file.pdf",
+    "change_type": "content_changed",
+    "modified_at": "2025-11-19T10:30:00Z"
+  }
+}
+```
+
+### 📊 **Evento "File PDF Eliminato"**
+```json
+{
+  "eventType": "pdf_file_deleted",
+  "data": {
+    "file_path": "/path/to/file.pdf",
+    "file_name": "documento.pdf",
+    "deleted_at": "2025-11-19T10:30:00Z"
   }
 }
 ```
@@ -104,37 +147,35 @@ const compatibleNodes = availableNodes.filter(node =>
 
 ## 📋 Esempi Pratici
 
-### Esempio 1: Monitor PDF con Analisi Semantica
+### Esempio 1: Monitor PDF con CREATE
 ```yaml
-Trigger: "PDF Semantico"
-Workflow: "Analisi Documentale"
-Event: "any_change"
-Target Node: "semantic-analyzer-node"
+Trigger: "Aggiunta PDF"
+Workflow: "wf_bd11290f923b (PDF Document CREATE Pipeline)"
+Event: "pdf_file_added"
+Target Node: "pdf_input_validator"
 Config:
-  monitor_path: "/documents/incoming"
+  monitor_path: "/pdf-files"
   recursive: true
 ```
 
-### Esempio 2: Trigger Multi-Step
+### Esempio 2: Monitor PDF con DELETE
 ```yaml
-Trigger: "Pipeline PDF Completa"  
-Workflow: "PDF Complete Pipeline"
-Event: "pdf_file_added"
-Target Node: "pdf-metadata-extractor"
+Trigger: "Eliminazione PDF"  
+Workflow: "wf_b32ead12131c (PDF Document DELETE Pipeline)"
+Event: "pdf_file_deleted"
+Target Node: "pdf_input_validator"
 Config:
-  monitor_path: "/inbox"
-  max_file_size: 100
+  monitor_path: "/pdf-files"
 ```
 
-### Esempio 3: Trigger con Filtraggio
+### Esempio 3: Monitor PDF con UPDATE
 ```yaml
-Trigger: "Solo PDF Grandi"
-Workflow: "Heavy Processing"
-Event: "pdf_file_added"
-Target Node: "batch-processor"
+Trigger: "Modifica PDF"
+Workflow: "wf_055bf5029833 (PDF Document UPDATE Pipeline)"
+Event: "pdf_file_modified"
+Target Node: "pdf_input_validator"
 Config:
-  monitor_path: "/large-docs"
-  min_file_size: 10  # MB
+  monitor_path: "/pdf-files"
 ```
 
 ## 🛠️ Troubleshooting
@@ -184,8 +225,8 @@ console.log('Compatibility:', node.compatibility[selectedEventType]);
 // In InputNodeSelector, aggiungi validazione custom
 const customValidation = (node, eventType) => {
   // Logica custom per validazione
-  if (node.node_type === 'heavy-processor' && eventType === 'any_change') {
-    return 'warning'; // Potrebbe essere lento
+  if (node.node_type === 'document_input_node' && eventType === 'pdf_file_added') {
+    return 'compatible'; // Perfettamente compatibile
   }
   return 'compatible';
 };

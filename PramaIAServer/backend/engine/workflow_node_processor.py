@@ -7,7 +7,7 @@ inclusa la conversione dei tipi e la preparazione degli input/output.
 
 from typing import Dict, Any, List
 from backend.engine.execution_context import ExecutionContext
-from backend.engine.node_registry import NodeRegistry
+from backend.engine.db_node_registry import db_node_registry
 from backend.engine.data_types import DataTypeRegistry
 from backend.engine.node_schemas import NodeSchemaRegistry
 from backend.utils import get_logger
@@ -54,7 +54,7 @@ class WorkflowNodeProcessor:
     """
     
     def __init__(self):
-        self.node_registry = NodeRegistry()
+        self.node_registry = db_node_registry
         self.type_registry = DataTypeRegistry()
         self.schema_registry = NodeSchemaRegistry()
         logger.info("WorkflowNodeProcessor inizializzato", details={"init": True})

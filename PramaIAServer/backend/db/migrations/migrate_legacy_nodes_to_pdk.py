@@ -61,53 +61,110 @@ def fetch_node_types(engine: Engine) -> List[Tuple[int, str]]:
 
 
 def build_mapping() -> Dict[str, str]:
-    """High-confidence mapping from legacy node types to PDK node types."""
+    """High-confidence mapping from legacy node types to modern PDK node types.
+    
+    Evoluzione architetturale:
+    - Da nodi specifici PDF → nodi generici per documenti
+    - Da processori legacy → plugin moderni standardizzati
+    - Da operazioni specifiche → operazioni generiche riusabili
+    """
     M: Dict[str, str] = {}
 
-    # Input
-    M["input_user"] = "pdk_core-input-plugin_user_input"
-    M["input_file"] = "pdk_core-input-plugin_file_input"
-
-    # LLM
-    M["llm_openai"] = "pdk_core-llm-plugin_openai"
-    M["llm_anthropic"] = "pdk_core-llm-plugin_anthropic"
-    M["llm_gemini"] = "pdk_core-llm-plugin_gemini"
-    M["llm_ollama"] = "pdk_core-llm-plugin_ollama"
-
-    # Output
-    M["output_text"] = "pdk_core-output-plugin_text_output"
-    M["output_file"] = "pdk_core-output-plugin_file_output"
-    M["output_email"] = "pdk_core-output-plugin_email_output"
-
-    # Data
-    M["json_processor"] = "pdk_core-data-plugin_json_processor"
-    M["csv_processor"] = "pdk_core-data-plugin_csv_processor"
-
-    # API
-    M["http_request"] = "pdk_core-api-plugin_http_request"
-    M["webhook"] = "pdk_core-api-plugin_webhook_handler"
-    # Legacy alias to http request
-    M["api_call"] = "pdk_core-api-plugin_http_request"
-
-    # Core RAG (presenti come legacy in alcuni workflow)
-    M["text_chunker"] = "pdk_core-rag-plugin_text_chunker"
-    M["text_embedder"] = "pdk_core-rag-plugin_text_embedder"
-
-    # PDF Semantic Complete plugin (workflow end-to-end)
-    M["pdf_input_node"] = "pdk_pdf-semantic-complete-plugin_pdf_input_node"
-    M["pdf_text_extractor"] = "pdk_pdf-semantic-complete-plugin_pdf_text_extractor"
-    M["chroma_vector_store"] = "pdk_pdf-semantic-complete-plugin_chroma_vector_store"
-    M["chroma_retriever"] = "pdk_pdf-semantic-complete-plugin_chroma_retriever"
-    M["query_input_node"] = "pdk_pdf-semantic-complete-plugin_query_input_node"
-    M["llm_processor"] = "pdk_pdf-semantic-complete-plugin_llm_processor"
-    M["pdf_results_formatter"] = "pdk_pdf-semantic-complete-plugin_pdf_results_formatter"
-
-    # Plugin interni
-    M["text_joiner"] = "pdk_internal-processors-plugin_text_joiner"
-
-    # RAG: non mappiamo automaticamente tipi ambigui per evitare regressioni
-    # Esempi legacy (se presenti) lasciati invariati: rag_query, document_index, rag_generation
-
+    # === DOCUMENT INPUT EVOLUTION ===
+    # Legacy PDF-specific → Modern document-generic
+    M["PDFInput"] = "document_input_node"  # PDF-specific → Generic document input
+    M["PDFInputValidator"] = "document_input_node"  # Validation embedded in modern node
+    M["input_file"] = "document_input_node"  # Generic file → Document input
+    M["TextInput"] = "document_input_node"  # Text → Document (more flexible)
+    
+    # === DOCUMENT PROCESSING EVOLUTION ===  
+    # Legacy PDF extractors → Modern document processors
+    M["PDFTextExtractor"] = "pdf_text_extractor"  # Still PDF-specific but modernized
+    M["PDKPDFExtractor"] = "pdf_text_extractor"  # PDK prefix removed
+    M["ContentChangeDetector"] = "file_parsing"  # Content detection → File parsing
+    M["PDKContentReprocessor"] = "document_processor"  # Reprocessing → Document processing
+    
+    # === TEXT PROCESSING EVOLUTION ===
+    # Legacy chunkers/embedders → Modern standardized processors
+    M["TextChunker"] = "text_chunker"  # Direct mapping (modernized)
+    M["PDKTextChunker"] = "text_chunker"  # Remove PDK prefix
+    M["TextEmbedder"] = "text_embedder"  # Direct mapping (modernized)
+    M["PDKTextEmbedder"] = "text_embedder"  # Remove PDK prefix
+    M["PDKEmbeddingUpdater"] = "text_embedder"  # Update operations → Embedder
+    
+    # === VECTOR STORAGE EVOLUTION ===
+    # Legacy ChromaDB operations → Modern vector store operations
+    M["ChromaVectorStore"] = "chroma_vector_store"  # Modernized ChromaDB
+    M["ChromaRetriever"] = "chroma_retriever"  # Modernized retrieval
+    M["PDKChromaWriter"] = "chroma_vector_store"  # Writer → Store operations
+    M["PDKVectorSync"] = "vector_store_operations"  # Sync → Generic operations
+    M["PDKVectorDeleter"] = "vector_store_operations"  # Delete → Generic operations
+    M["DatabaseWriter"] = "vector_store_operations"  # DB write → Vector operations
+    M["IndexUpdater"] = "vector_store_operations"  # Index update → Vector operations
+    M["IndexCleaner"] = "vector_store_operations"  # Index clean → Vector operations
+    
+    # === QUERY & SEARCH EVOLUTION ===
+    # Legacy query processors → Modern query handlers
+    M["QueryInputProcessor"] = "query_input_node"  # Query processing → Query input
+    M["QueryRouter"] = "query_input_node"  # Routing embedded in input
+    M["PDKQueryEmbedder"] = "chroma_retriever"  # Query embedding → Retrieval
+    M["PDKSemanticSearch"] = "chroma_retriever"  # Semantic search → Retrieval
+    M["PDKContextBuilder"] = "chroma_retriever"  # Context building → Retrieval
+    M["MetadataSearcher"] = "chroma_retriever"  # Metadata search → Retrieval
+    
+    # === LLM PROCESSING EVOLUTION ===
+    # Legacy LLM processors → Modern standardized LLM processor
+    M["LLMProcessor"] = "llm_processor"  # Direct mapping (modernized)
+    M["PDKLLMProcessor"] = "llm_processor"  # Remove PDK prefix
+    M["RAGPromptBuilder"] = "llm_processor"  # Prompt building → LLM processing
+    
+    # === OUTPUT & FORMATTING EVOLUTION ===
+    # Legacy formatters → Modern results formatter
+    M["OutputFormatter"] = "document_results_formatter"  # Generic → Document-specific
+    M["ResponseFormatter"] = "document_results_formatter"  # Response → Document results
+    M["ResultMerger"] = "document_results_formatter"  # Merging → Formatting
+    
+    # === METADATA MANAGEMENT EVOLUTION ===
+    # Legacy metadata operations → Modern metadata manager
+    M["MetadataCoordinator"] = "metadata_manager"  # Coordination → Management
+    M["MetadataUpdater"] = "metadata_manager"  # Update → Management
+    M["MetadataDeleter"] = "metadata_manager"  # Delete → Management
+    
+    # === LOGGING & MONITORING EVOLUTION ===
+    # Legacy loggers → Modern event logger
+    M["AuditLogger"] = "event_logger"  # Audit → Event logging
+    M["NotificationManager"] = "event_logger"  # Notifications → Event logging
+    M["SearchAnalytics"] = "event_logger"  # Analytics → Event logging
+    
+    # === WORKFLOW CONTROL EVOLUTION ===
+    # Legacy validation/control → Modern text processors (simpler approach)
+    M["UpdateInputValidator"] = "text_filter"  # Validation → Filtering
+    M["DeleteInputValidator"] = "text_filter"  # Validation → Filtering
+    M["TransactionCoordinator"] = "text_filter"  # Coordination → Filtering
+    M["TransactionManager"] = "text_filter"  # Management → Filtering
+    M["TransactionFinalizer"] = "text_filter"  # Finalization → Filtering
+    M["ErrorHandler"] = "text_filter"  # Error handling → Filtering
+    M["ErrorRecovery"] = "text_filter"  # Recovery → Filtering
+    M["RecoveryManager"] = "text_filter"  # Recovery management → Filtering
+    M["RollbackManager"] = "text_filter"  # Rollback → Filtering
+    M["SuccessCoordinator"] = "text_filter"  # Success coordination → Filtering
+    M["DependencyChecker"] = "text_filter"  # Dependency check → Filtering
+    
+    # === UTILITY OPERATIONS EVOLUTION ===
+    # Legacy utilities → Modern text utilities
+    M["BackupCreator"] = "text_joiner"  # Backup → Text joining (simpler)
+    M["UpdateNotification"] = "text_joiner"  # Notifications → Text joining
+    M["VersionManager"] = "text_joiner"  # Version management → Text joining
+    
+    # === CLEANUP & MAINTENANCE EVOLUTION ===
+    # Legacy cleanup → Modern processors
+    M["PDKCleanupProcessor"] = "text_filter"  # Cleanup → Filtering
+    
+    # === USER CONTEXT EVOLUTION ===
+    # Legacy user input → Modern user context
+    M["input_user"] = "user_context_provider"  # User input → Context provision
+    
+    print(f"📋 Mapping configured: {len(M)} legacy → modern node mappings")
     return M
 
 

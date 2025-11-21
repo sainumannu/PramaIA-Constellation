@@ -1,0 +1,51 @@
+[
+  {
+    "filename": "test_1763503661.14634.pdf",
+    "owner": "ee38533e-89ed-4551-9e56-de93ce3d2fb3",
+    "timestamp": "2025-11-18T23:07:43.803410",
+    "size": 51,
+    "is_public": false
+  },
+  {
+    "filename": "test_1763503692.867426.pdf",
+    "owner": "ee38533e-89ed-4551-9e56-de93ce3d2fb3",
+    "timestamp": "2025-11-18T23:08:14.917692",
+    "size": 51,
+    "is_public": false
+  },
+  {
+    "filename": "test_1763503762.210846.pdf",
+    "owner": "ee38533e-89ed-4551-9e56-de93ce3d2fb3",
+    "timestamp": "2025-11-18T23:09:24.286151",
+    "size": 51,
+    "is_public": false
+  },
+  {
+    "filename": "test_1763507952.965587.pdf",
+    "owner": "ee38533e-89ed-4551-9e56-de93ce3d2fb3",
+    "timestamp": "2025-11-19T00:19:15.050881",
+    "size": 51,
+    "is_public": false
+  },
+  {
+    "filename": "test_1763507984.758301.pdf",
+    "owner": "ee38533e-89ed-4551-9e56-de93ce3d2fb3",
+    "timestamp": "2025-11-19T00:19:46.836541",
+    "size": 51,
+    "is_public": false
+  },
+  {
+    "filename": "test.pdf",
+    "owner": 7,
+    "timestamp": "2025-11-19T17:32:52.307181",
+    "size": 2163,
+    "is_public": false
+  },
+  {
+    "filename": "test_e2e_upload.pdf",
+    "owner": 1,
+    "timestamp": "2025-11-20T00:28:12.343473",
+    "size": 1678,
+    "is_public": false
+  }
+]

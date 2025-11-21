@@ -72,9 +72,9 @@ def check_registry():
     print("=" * 40)
     
     try:
-        from backend.engine.node_registry import NodeRegistry
+        from backend.engine.db_node_registry import db_node_registry
         
-        registry = NodeRegistry()
+        registry = db_node_registry
         
         # Ottieni lista processori disponibili
         available_processors = []

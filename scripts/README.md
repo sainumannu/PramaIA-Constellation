@@ -1,18 +1,22 @@
-# PramaIA Scripts Organization
+# PramaIA Scripts Organization - AGGIORNATO
 
-**Struttura organizzata script e utility del progetto**
+**Script per debugging, manutenzione e gestione del sistema PramaIA**
+**Ultima riorganizzazione**: 20 Novembre 2025
 
-## 📁 **Struttura Script**
+## 📁 **Struttura Script Completa**
 
 ```
 scripts/
-├── maintenance/         🔧 Script diagnostici e manutenzione
-├── debug/              🐛 Script debug e analisi problemi  
-├── migration/          📦 Script migrazione e rebuild
-└── workflows/          🔄 Script gestione workflow
+├── maintenance/         🔧 Script verifica e controllo sistema (15+ script)
+├── debug/              🐛 Script debug e troubleshooting (7 script)  
+├── workflows/          🔄 Script gestione workflow e nodi (9 script)
+├── migration/          📦 Script migrazione e rebuild database (1 script)
+└── utilities/          🔧 Script utility varie (3 script)
 
-tests/                  ✅ Test suite completa
+tests/                  ✅ Test suite completa (6+ script principali)
 ```
+
+**✅ ROOT PULITA**: Tutti gli script sono ora organizzati nelle sottocartelle!
 
 ## 🎯 **Utilizzo per Categoria**
 

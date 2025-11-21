@@ -144,8 +144,10 @@ class NodeRegistry:
         self.register_processor("document_index", DocumentIndexProcessor())
         self.register_processor("rag_generation", RAGGenerationProcessor())
         
-        # STUB processors per workflow esistenti
-        # TODO: Implementare processori reali
+        # === MODERN PDK PROCESSORS (POST-MIGRATION) ===
+        # Dopo migrazione database: nodi legacy → nodi PDK moderni
+        
+        # Document Monitor Plugin processors 
         self.register_processor("event_input_node", EventInputProcessor())
         self.register_processor("file_parsing", FileParsingProcessor())
         self.register_processor("metadata_manager", MetadataManagerProcessor())
@@ -153,25 +155,25 @@ class NodeRegistry:
         self.register_processor("vector_store_operations", VectorStoreOperationsProcessor())
         self.register_processor("event_logger", EventLoggerProcessor())
         
-        # PDF processors migrati al PDK - rimossi i processori legacy
-        # I nodi PDF sono ora gestiti tramite l'architettura PDK
-        # Vedere PramaIA-PDK/plugins/ per le implementazioni attuali
+        # Document Semantic Complete Plugin processors (modernized)
+        from backend.engine.processors.pdk_proxy_processors import PDKProxyProcessor
+        self.register_processor("document_input_node", PDKProxyProcessor("document-semantic-complete-plugin", "document_input_node"))
+        self.register_processor("pdf_text_extractor", PDKProxyProcessor("document-semantic-complete-plugin", "pdf_text_extractor"))
+        self.register_processor("text_chunker", PDKProxyProcessor("document-semantic-complete-plugin", "text_chunker"))
+        self.register_processor("text_embedder", PDKProxyProcessor("document-semantic-complete-plugin", "text_embedder"))
+        self.register_processor("chroma_vector_store", PDKProxyProcessor("document-semantic-complete-plugin", "chroma_vector_store"))
+        self.register_processor("query_input_node", PDKProxyProcessor("document-semantic-complete-plugin", "query_input_node"))
+        self.register_processor("chroma_retriever", PDKProxyProcessor("document-semantic-complete-plugin", "chroma_retriever"))
+        self.register_processor("llm_processor", PDKProxyProcessor("document-semantic-complete-plugin", "llm_processor"))
+        self.register_processor("document_results_formatter", PDKProxyProcessor("document-semantic-complete-plugin", "document_results_formatter"))
         
-        # Processing processors (legacy)
-        # Usano i processori esistenti invece di importare file non esistenti
+        # Internal Processors Plugin processors
+        self.register_processor("text_joiner", PDKProxyProcessor("internal-processors-plugin", "text_joiner"))
+        self.register_processor("text_filter", PDKProxyProcessor("internal-processors-plugin", "text_filter"))
+        self.register_processor("user_context_provider", PDKProxyProcessor("internal-processors-plugin", "user_context_provider"))
+        
+        # Legacy processors (per backward compatibility)
         self.register_processor("processing_text", TextProcessor())
-        
-        # PDF Semantic Workflow processors - RIMOSSO: ora gestito da PramaIA-PDK
-        # I nodi PDF semantici sono ora dinamicamente caricati dal PDK server
-        # self.register_processor("pdf_input_node", FileInputProcessor())  
-        # self.register_processor("pdf_text_extractor", TextProcessor())   
-        # self.register_processor("text_chunker", TextProcessor())         
-        # self.register_processor("text_embedder", TextProcessor())        
-        # self.register_processor("chroma_vector_store", TextProcessor())  
-        # self.register_processor("query_input_node", UserInputProcessor()) 
-        # self.register_processor("chroma_retriever", TextProcessor())     
-        # self.register_processor("llm_processor", OpenAIProcessor())      
-        # self.register_processor("pdf_results_formatter", PDFResultsFormatterProcessor())
     
     def register_processor(self, node_type: str, processor: BaseNodeProcessor):
         """Registra un processore per un tipo di nodo."""

@@ -1,0 +1,159 @@
+SUMMARY: DIAGNOSTICA COMPLETATA DELLA PIPELINE VETTORIZZAZIONE PRAMAIO
+======================================================================
+
+DATA: 19 Novembre 2025
+CONCLUSIONE: Problema identificato e soluzione pronta
+
+COMPONENTI TESTATI
+==================
+
+✓ Monitor Agent (Port 8001)
+  - Online e funzionante
+  - Rileva file nella cartella D:\TestPramaIA
+  - Richiede rescan manuale per nuovi file
+
+✓ Backend FastAPI (Port 8000)
+  - Online con tutti gli endpoint disponibili
+  - Richiede autenticazione (Bearer token)
+  - Problema: Token JWT non contiene user_id
+
+✓ VectorStore Service (Port 8090)
+  - Online e pronto per ricevere documenti
+  - Attualmente vuoto (0 documenti)
+
+✓ Database SQLite
+  - 3 Trigger configurati e ACTIVE
+  - 0 Workflow executions (BLOCCATO)
+  - 1072 eventi Monitor storici
+
+PROBLEMA PRINCIPALE
+===================
+
+CRITICO: Token JWT mancante di user_id
+- Endpoint: /api/documents/upload/
+- Errore: 400 "user_id mancante nel token utente"
+- Causa: Funzione di creazione token incompleta
+- File da modificare: backend/auth/dependencies.py
+- Impatto: Impossibile caricare documenti
+
+CONSEGUENZA A CASCATA
+=====================
+
+1. Upload fallisce (token invalido)
+   ↓
+2. Nessun documento arriva al backend
+   ↓
+3. Trigger non si attivano
+   ↓
+4. Workflow non eseguono
+   ↓
+5. Nessun documento è vettorizzato
+   ↓
+6. Pipeline fermata completamente
+
+SOLUZIONE
+=========
+
+Opzione 1 (CONSIGLIATA): Correggere il token JWT
+  Ubicazione: PramaIAServer/backend/auth/dependencies.py
+  Azione: Aggiungere user_id al payload JWT
+  Tempo: ~10 minuti
+  Rischio: Basso
+
+Opzione 2 (FALLBACK): Creare endpoint upload pubblico
+  Ubicazione: PramaIAServer/backend/routers/documents.py
+  Azione: Aggiungere /api/documents/upload-public/ senza auth
+  Tempo: ~15 minuti
+  Rischio: Basso
+
+SCRIPT CREATI
+=============
+
+1. final_diagnostic_report.py
+   Genera rapporto diagnostico dettagliato
+
+2. quick_check.py
+   Check rapido dello stato del sistema
+
+3. test_e2e_register_login.py
+   Test completo della pipeline (da usare dopo correzione)
+
+4. DIAGNOSTIC_REPORT.md
+   Rapporto in formato Markdown con soluzioni
+
+COME PROCEDERE
+==============
+
+FASE 1 - CORREZIONE (15-30 minuti)
+  1. Aprire: PramaIAServer/backend/auth/dependencies.py
+  2. Cercare la funzione create_access_token
+  3. Aggiungere: to_encode["user_id"] = data.get("sub")
+  4. Salvare e riavviare il backend
+
+FASE 2 - VERIFICA (5 minuti)
+  1. Eseguire: python test_e2e_register_login.py
+  2. Verificare che upload sia OK (status 200)
+  3. Controllare workflow_executions nel database
+
+FASE 3 - VALIDAZIONE (10 minuti)
+  1. Verificare che documenti siano in VectorStore
+  2. Testare query semantica
+  3. Validare metadati
+
+TEMPO TOTALE: ~1 ora per risolvere completamente
+
+PROSSIMI STEP
+=============
+
+Immediato:
+  [ ] Correggere token JWT
+
+Oggi:
+  [ ] Eseguire test pipeline
+  [ ] Verificare workflow_executions > 0
+
+Domani:
+  [ ] Testare vettorizzazione completa
+  [ ] Validare embeddings
+
+Questa settimana:
+  [ ] Abilitare auto-detection Monitor
+  [ ] Aggiungere logging e error handling
+
+COMANDI UTILI
+=============
+
+Diagnostica rapida:
+  python quick_check.py
+
+Rapporto completo:
+  python final_diagnostic_report.py
+
+Verificare trigger:
+  sqlite3 PramaIAServer/backend/db/database.db \
+    "SELECT * FROM workflow_triggers;"
+
+Forza rilevamento:
+  curl -X POST http://localhost:8001/monitor/rescan_all
+
+CONCLUSIONI
+===========
+
+✓ Sistema ben architettato
+✓ Tutti i componenti funzionanti
+✓ Problema puramente tecnico (token JWT)
+✓ Soluzione semplice e rapida
+✓ Rischio di implementazione: BASSO
+
+Una volta corretti i token:
+  - Upload funzionerà
+  - Trigger si attiveranno
+  - Workflow eseguiranno
+  - Documenti verranno vettorizzati
+  - Pipeline sarà operativa
+
+======================================================================
+Rapporto Completo: DIAGNOSTIC_REPORT.md
+Script Diagnostica: final_diagnostic_report.py
+Test Pipeline: test_e2e_register_login.py
+======================================================================

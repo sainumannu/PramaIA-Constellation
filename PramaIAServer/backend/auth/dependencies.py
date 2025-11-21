@@ -38,7 +38,8 @@ def get_current_user(request: Request) -> UserInToken:
             username=username_from_token, # Mappa 'sub' a 'username'
             email=payload.get("email"), # Se presente nel token (non lo è nel nostro esempio attuale)
             name=user_name_from_token,
-            role=user_role_from_token
+            role=user_role_from_token,
+            user_id=user_id_from_token  # Aggiungi user_id
         )
     except jwt.ExpiredSignatureError:
         logger.info(f"Tentativo di accesso con token scaduto. Token: {token[:20]}...")
@@ -79,7 +80,8 @@ def get_current_user_optional(request: Request) -> Optional[UserInToken]:
             username=username_from_token,
             email=payload.get("email"),
             name=user_name_from_token,
-            role=user_role_from_token
+            role=user_role_from_token,
+            user_id=user_id_from_token  # Aggiungi user_id
         )
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
         logger.info(f"Token non valido in auth opzionale: {type(e).__name__}")

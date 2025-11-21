@@ -10,7 +10,7 @@
   "nodes": [
     {
       "node_id": "pdf_input_validator",
-      "node_type": "PDFInputValidator",
+      "node_type": "file_input",
       "name": "PDF Input Validator",
       "description": "Validazione file PDF e controlli di sicurezza (Backend)",
       "execution_context": "backend",
@@ -30,7 +30,7 @@
     },
     {
       "node_id": "metadata_coordinator",
-      "node_type": "MetadataCoordinator", 
+      "node_type": "metadata_manager", 
       "name": "Metadata Coordinator",
       "description": "Coordina estrazione e gestione metadati strutturati (Backend)",
       "execution_context": "backend",
@@ -49,7 +49,7 @@
     },
     {
       "node_id": "transaction_manager",
-      "node_type": "TransactionManager",
+      "node_type": "event_logger",
       "name": "Transaction Manager", 
       "description": "Gestione transazionale per operazioni dual-storage (Backend)",
       "execution_context": "backend",
@@ -68,7 +68,7 @@
     },
     {
       "node_id": "database_writer",
-      "node_type": "DatabaseWriter",
+      "node_type": "file_output",
       "name": "Metadata Database Writer",
       "description": "Scrittura metadati nel database strutturato (Backend)",
       "execution_context": "backend", 
@@ -87,7 +87,7 @@
     },
     {
       "node_id": "pdk_pdf_extractor",
-      "node_type": "PDKPDFExtractor",
+      "node_type": "pdf_text_extractor",
       "name": "PDF Text Extractor (PDK)",
       "description": "Estrazione testo avanzata tramite PDK Server con OCR e layout preservation",
       "execution_context": "pdk",
@@ -108,7 +108,7 @@
     },
     {
       "node_id": "pdk_text_chunker",
-      "node_type": "PDKTextChunker", 
+      "node_type": "text_chunker", 
       "name": "Text Chunker (PDK)",
       "description": "Segmentazione intelligente del testo per elaborazione semantica (PDK)",
       "execution_context": "pdk",
@@ -129,7 +129,7 @@
     },
     {
       "node_id": "pdk_embedder",
-      "node_type": "PDKTextEmbedder",
+      "node_type": "text_embedder",
       "name": "Embedding Generator (PDK)",
       "description": "Generazione embeddings vettoriali tramite modelli transformer (PDK)",
       "execution_context": "pdk",
@@ -150,7 +150,7 @@
     },
     {
       "node_id": "pdk_chroma_writer",
-      "node_type": "PDKChromaWriter",
+      "node_type": "chroma_vector_store",
       "name": "Vector Storage Writer (PDK)",
       "description": "Scrittura embeddings nel database vettoriale ChromaDB (PDK)",
       "execution_context": "pdk",
@@ -171,7 +171,7 @@
     },
     {
       "node_id": "success_coordinator",
-      "node_type": "SuccessCoordinator",
+      "node_type": "event_logger",
       "name": "Success Coordinator",
       "description": "Coordinamento finale e conferma successo operazione CREATE (Backend)",
       "execution_context": "backend",
@@ -190,7 +190,7 @@
     },
     {
       "node_id": "error_handler",
-      "node_type": "ErrorHandler",
+      "node_type": "event_logger",
       "name": "Error Handler & Rollback",
       "description": "Gestione errori e rollback per mantenere consistenza dual-storage (Backend)",
       "execution_context": "backend",

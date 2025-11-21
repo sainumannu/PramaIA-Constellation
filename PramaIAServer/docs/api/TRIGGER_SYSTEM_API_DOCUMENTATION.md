@@ -18,14 +18,14 @@ Recupera la lista dei nodi di input disponibili per un workflow specifico.
 **Response Example:**
 ```json
 {
-  "workflow_id": "workflow_123",
+  "workflow_id": "wf_bd11290f923b",
   "input_nodes": [
     {
-      "node_id": "pdf_processor_node",
-      "node_name": "PDF Document Processor",
-      "node_type": "pdf-semantic-analyzer",
-      "plugin_id": "pdf-semantic-complete-plugin",
-      "description": "Analizza e processa documenti PDF",
+      "node_id": "pdf_input_validator",
+      "node_name": "PDF Input Validator",
+      "node_type": "PDFInputValidator",
+      "plugin_id": "core-input-plugin",
+      "description": "Valida e prepara documenti PDF in ingresso",
       "inputs": [
         {
           "name": "file_path",
@@ -58,7 +58,7 @@ Recupera la lista dei nodi di input disponibili per un workflow specifico.
 {
   "detail": "Workflow not found",
   "error_code": "WORKFLOW_NOT_FOUND",
-  "workflow_id": "workflow_123"
+  "workflow_id": "wf_bd11290f923b"
 }
 
 // 500 - Errore nel caricamento del workflow
@@ -78,14 +78,14 @@ Crea un nuovo trigger con supporto per nodo target specifico.
 **Request Body:**
 ```json
 {
-  "name": "PDF Monitor Trigger",
-  "description": "Monitora cartella PDF per nuovi documenti",
-  "workflow_id": "workflow_123",
+  "name": "Trigger Aggiunta PDF",
+  "description": "Rileva nuovi file PDF nella cartella monitorata",
+  "workflow_id": "wf_bd11290f923b",
   "source": "pdf-monitor-event-source",
-  "event_type": "any_change",
-  "target_node_id": "pdf_processor_node",
+  "event_type": "pdf_file_added",
+  "target_node_id": "pdf_input_validator",
   "config": {
-    "monitor_path": "/path/to/pdf/folder",
+    "monitor_path": "/pdf-files",
     "recursive": true,
     "file_extensions": [".pdf"]
   },
@@ -96,21 +96,21 @@ Crea un nuovo trigger con supporto per nodo target specifico.
 **Response Example:**
 ```json
 {
-  "id": 456,
-  "name": "PDF Monitor Trigger",
-  "description": "Monitora cartella PDF per nuovi documenti",
-  "workflow_id": "workflow_123",
+  "id": "2cf4add5-c7e5-42a2-9c1e-8b0a9f5d3e2c",
+  "name": "Trigger Aggiunta PDF",
+  "description": "Rileva nuovi file PDF nella cartella monitorata",
+  "workflow_id": "wf_bd11290f923b",
   "source": "pdf-monitor-event-source",
-  "event_type": "any_change",
-  "target_node_id": "pdf_processor_node",
+  "event_type": "pdf_file_added",
+  "target_node_id": "pdf_input_validator",
   "config": {
-    "monitor_path": "/path/to/pdf/folder",
+    "monitor_path": "/pdf-files",
     "recursive": true,
     "file_extensions": [".pdf"]
   },
   "is_active": true,
-  "created_at": "2025-08-05T10:30:00Z",
-  "updated_at": "2025-08-05T10:30:00Z",
+  "created_at": "2025-11-19T10:30:00Z",
+  "updated_at": "2025-11-19T10:30:00Z",
   "validation": {
     "node_compatibility": "valid",
     "schema_match": "compatible",
@@ -126,10 +126,10 @@ Aggiorna un trigger esistente con supporto per modifica nodo target.
 **Request Body:**
 ```json
 {
-  "name": "PDF Monitor Trigger Updated",
-  "target_node_id": "advanced_pdf_processor_node",
+  "name": "Trigger Aggiunta PDF (Modificato)",
+  "target_node_id": "pdf_input_validator",
   "config": {
-    "monitor_path": "/new/path/to/pdf/folder",
+    "monitor_path": "/pdf-files-updated",
     "max_file_size": 50
   }
 }
@@ -144,33 +144,31 @@ Valida la compatibilità di un trigger con il suo nodo target.
 **Response Example:**
 ```json
 {
-  "trigger_id": 456,
+  "trigger_id": "2cf4add5-c7e5-42a2-9c1e-8b0a9f5d3e2c",
   "validation_result": {
     "is_valid": true,
-    "compatibility_score": 0.95,
+    "compatibility_score": 0.98,
     "checks": [
       {
         "check": "node_exists",
         "status": "pass",
-        "message": "Target node exists in workflow"
+        "message": "Target node pdf_input_validator exists in workflow"
       },
       {
         "check": "schema_compatibility",
         "status": "pass",
-        "message": "Event schema compatible with node inputs"
+        "message": "Event schema pdf_file_added compatible with node inputs"
       },
       {
         "check": "plugin_availability",
         "status": "pass",
-        "message": "Required plugin is loaded and available"
+        "message": "Required plugin core-input-plugin is loaded and available"
       }
     ],
     "warnings": [],
     "errors": []
   },
-  "recommendations": [
-    "Consider adding file size validation in trigger config"
-  ]
+  "recommendations": []
 }
 ```
 
@@ -213,26 +211,49 @@ Recupera gli eventi disponibili per una specifica event source (PDK integration)
       ]
     },
     {
-      "id": "any_change",
-      "name": "Qualsiasi Modifica",
-      "description": "Triggered when any change occurs in the monitored folder",
-      "tags": ["any-change", "comprehensive-monitoring"],
+      "id": "pdf_file_deleted",
+      "name": "PDF File Deleted",
+      "description": "Triggered when a PDF file is deleted from the monitored folder",
+      "tags": ["file-deleted", "removal"],
       "outputs": [
         {
           "name": "file_path",
           "type": "string",
-          "description": "Absolute path to the changed PDF file"
+          "description": "Absolute path to the deleted PDF file"
+        },
+        {
+          "name": "file_name",
+          "type": "string",
+          "description": "Name of the PDF file"
+        },
+        {
+          "name": "deleted_at",
+          "type": "string",
+          "description": "ISO timestamp when the deletion was detected"
+        }
+      ]
+    },
+    {
+      "id": "pdf_file_modified",
+      "name": "PDF File Modified",
+      "description": "Triggered when a PDF file is modified in the monitored folder",
+      "tags": ["file-modified", "update"],
+      "outputs": [
+        {
+          "name": "file_path",
+          "type": "string",
+          "description": "Absolute path to the modified PDF file"
         },
         {
           "name": "change_type",
-          "type": "string", 
-          "description": "Type of change: created, modified, or deleted",
-          "enum": ["created", "modified", "deleted"]
+          "type": "string",
+          "description": "Type of modification",
+          "enum": ["content_changed", "metadata_changed"]
         },
         {
-          "name": "detected_at",
+          "name": "modified_at",
           "type": "string",
-          "description": "ISO timestamp when the change was detected"
+          "description": "ISO timestamp when the modification was detected"
         }
       ]
     }
@@ -252,12 +273,12 @@ sequenceDiagram
     participant WE as Workflow Engine
 
     C->>API: POST /workflow-triggers
-    API->>WE: Validate workflow exists
+    API->>WE: Validate workflow wf_bd11290f923b exists
     WE->>API: Workflow found
-    API->>PDK: Validate event source
+    API->>PDK: Validate pdf-monitor-event-source
     PDK->>API: Event source valid
     API->>WE: Get input nodes
-    WE->>API: Input nodes list
+    WE->>API: [pdf_input_validator]
     API->>API: Validate node compatibility
     API->>DB: Create trigger record
     DB->>API: Trigger created

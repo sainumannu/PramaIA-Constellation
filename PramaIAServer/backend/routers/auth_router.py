@@ -71,7 +71,7 @@ async def login_for_access_token_local( # Nome funzione aggiornato per chiarezza
         "sub": user.username, # Usiamo username come 'subject' del token
         "name": user.name or user.username,
         "role": user.role,
-        "user_id": user.user_id, # Aggiungi user_id al token
+        "user_id": user.id, # Aggiungi user_id al token
         "exp": expire
     }
     logger.info(
@@ -87,7 +87,7 @@ async def login_for_access_token_local( # Nome funzione aggiornato per chiarezza
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     logger.info(
         f"Token creato e pronto per l'invio",
-        details={"username": user.username, "user_id": user.user_id},
+        details={"username": user.username, "user_id": user.id},
         context={"component": "auth_router", "endpoint": "/token/local"}
     )
     return {"access_token": encoded_jwt, "token_type": "bearer"}
@@ -176,6 +176,8 @@ async def register_user(
     try:
         # Usa il servizio utente per creare il nuovo utente
         user = user_service.create_user(db, user_data)
+        db.commit()
+        db.refresh(user)
         logger.info(
             "Utente registrato con successo",
             details={
@@ -193,7 +195,7 @@ async def register_user(
             "sub": user.username,
             "name": user.name or user.username,
             "role": user.role,
-            "user_id": user.user_id,
+            "user_id": user.id,
             "exp": expire
         }
         
@@ -303,10 +305,10 @@ def callback_microsoft(request: Request, db: Session = Depends(get_db)): # Nome 
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         expire = datetime.utcnow() + access_token_expires
         payload = {
-            "sub": db_user.username, # O email, o db_user.user_id se preferisci
+            "sub": db_user.username, # O email, o db_user.id se preferisci
             "name": db_user.name,
             "role": db_user.role,
-            "user_id": db_user.user_id, # ID univoco dal tuo DB (che dovrebbe essere l'OID)
+            "user_id": db_user.id, # ID univoco dal tuo DB (che dovrebbe essere l'OID)
             "exp": expire
         }
         logger.info(

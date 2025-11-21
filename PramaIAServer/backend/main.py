@@ -28,6 +28,7 @@ from backend.routers.workflow_triggers_router import router as workflow_triggers
 
 # Import per il router delle event sources
 from backend.routers.event_sources_router import router as event_sources_router
+from backend.routers.event_trigger_system import router as event_trigger_router
 from backend.routers.database_management_router import router as database_management_router
 
 # Import per il router delle impostazioni
@@ -134,6 +135,8 @@ try:
     logger.info("workflow_triggers_router incluso.")
     app.include_router(workflow_router)  # Il prefix /api/workflows è già definito nel router
     logger.info("workflow_router incluso.")
+    app.include_router(event_trigger_router)  # Router per l'elaborazione degli eventi (prefix già incluso)
+    logger.info("event_trigger_router incluso.")
     app.include_router(event_sources_router, tags=["event-sources"])  # Router per le sorgenti di eventi
     app.include_router(database_management_router, tags=["database-management"])  # Router per gestione database e reset
     app.include_router(settings_router, tags=["settings"])  # Router per gestione impostazioni

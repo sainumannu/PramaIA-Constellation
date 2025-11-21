@@ -23,26 +23,27 @@ Il sistema PramaIA è basato su un'architettura a microservizi con le seguenti c
 
 ## Database Schema
 
-Il sistema utilizza una tabella `workflow_triggers` con la seguente struttura:
+Il sistema utilizza SQLite con la tabella `workflow_triggers` che ha la seguente struttura:
 
 ```sql
 CREATE TABLE IF NOT EXISTS workflow_triggers (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    event_type VARCHAR(100) NOT NULL,
-    source VARCHAR(100) NOT NULL,
-    workflow_id VARCHAR(255) NOT NULL,
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    workflow_id TEXT NOT NULL,
+    target_node_id TEXT DEFAULT NULL,
     conditions TEXT DEFAULT '{}',
-    active BOOLEAN DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    active INTEGER DEFAULT 1,
+    created_at DATETIME,
+    updated_at DATETIME
 );
 ```
 
 Con indici per ottimizzare le query più frequenti:
-- `idx_trigger_event_source`
-- `idx_trigger_active`
-- `idx_trigger_workflow_id`
+- `idx_workflow_triggers_workflow_id`
+- `idx_workflow_triggers_target_node`
+- `idx_workflow_triggers_event_type`
 
 ## File Modificati
 

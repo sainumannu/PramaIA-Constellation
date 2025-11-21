@@ -9,7 +9,7 @@
   "nodes": [
     {
       "node_id": "pdf_input_node",
-      "node_type": "PDFInput",
+      "node_type": "file_input",
       "name": "PDF Input",
       "description": "Riceve file PDF dall'utente per l'elaborazione",
       "config": {
@@ -28,7 +28,7 @@
     },
     {
       "node_id": "pdf_text_extractor",
-      "node_type": "PDFTextExtractor",
+      "node_type": "pdf_text_extractor",
       "name": "PDF Text Extractor",
       "description": "Estrae testo dal PDF preservando il layout e la struttura",
       "config": {
@@ -47,7 +47,7 @@
     },
     {
       "node_id": "text_chunker",
-      "node_type": "TextChunker",
+      "node_type": "text_chunker",
       "name": "Text Chunker",
       "description": "Divide il testo in segmenti ottimali per l'embedding",
       "config": {
@@ -66,7 +66,7 @@
     },
     {
       "node_id": "text_embedder",
-      "node_type": "TextEmbedder",
+      "node_type": "text_embedder",
       "name": "Text Embedder",
       "description": "Genera rappresentazioni vettoriali del testo per ricerca semantica",
       "config": {
@@ -85,7 +85,7 @@
     },
     {
       "node_id": "chroma_vector_store",
-      "node_type": "ChromaVectorStore",
+      "node_type": "chroma_vector_store",
       "name": "ChromaDB Writer",
       "description": "Salva embeddings nel database vettoriale per ricerca semantica",
       "config": {
@@ -104,7 +104,7 @@
     },
     {
       "node_id": "query_input_node", 
-      "node_type": "TextInput",
+      "node_type": "query_input_node",
       "name": "Query Input",
       "description": "Input per domande dell'utente in linguaggio naturale",
       "config": {
@@ -123,7 +123,7 @@
     },
     {
       "node_id": "query_embedder",
-      "node_type": "TextEmbedder", 
+      "node_type": "text_embedder", 
       "name": "Query Embedder",
       "description": "Converte la query dell'utente in embedding per ricerca semantica",
       "config": {
@@ -141,7 +141,7 @@
     },
     {
       "node_id": "chroma_retriever",
-      "node_type": "ChromaRetriever",
+      "node_type": "chroma_retriever",
       "name": "ChromaDB Retriever", 
       "description": "Ricerca semantica nei documenti indicizzati basata sulla query",
       "config": {
@@ -160,7 +160,7 @@
     },
     {
       "node_id": "rag_prompt_builder",
-      "node_type": "RAGPromptBuilder",
+      "node_type": "rag_prompt_builder",
       "name": "RAG Prompt Builder",
       "description": "Costruisce il prompt combinando query e documenti recuperati",
       "config": {
@@ -179,7 +179,7 @@
     },
     {
       "node_id": "llm_processor",
-      "node_type": "LLMProcessor", 
+      "node_type": "llm_processor", 
       "name": "LLM Processor",
       "description": "Genera risposta contestualizzata usando il modello linguistico",
       "config": {
@@ -198,7 +198,7 @@
     },
     {
       "node_id": "pdf_results_formatter",
-      "node_type": "OutputFormatter",
+      "node_type": "document_results_formatter",
       "name": "Results Formatter",
       "description": "Formatta la risposta finale con metadati e riferimenti alle fonti",
       "config": {

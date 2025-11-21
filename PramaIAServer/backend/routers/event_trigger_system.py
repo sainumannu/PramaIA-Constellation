@@ -83,15 +83,18 @@ async def process_generic_event(
             payload.metadata.user_id = getattr(current_user, 'id', None)
         
         # Log dell'evento ricevuto
+        logger.info(f"🟢 [process_generic_event] CALLED! event_type={payload.event_type}, source={payload.metadata.source}, event_id={event_id}")
         logger.info(f"Ricevuto evento {payload.event_type} da {payload.metadata.source} [ID: {event_id}]")
         
         # Processa l'evento usando il servizio trigger
+        logger.info(f"🟡 [process_generic_event] About to call TriggerService.process_event()...")
         trigger_service = TriggerService(db)
         result = await trigger_service.process_event(
             event_type=payload.event_type,
             data=payload.data,
             metadata=payload.metadata.dict()
         )
+        logger.info(f"🟡 [process_generic_event] TriggerService.process_event() returned: {result}")
         
         # Converti il risultato nel formato dell'API
         status = "processed" if result["success"] else "error"

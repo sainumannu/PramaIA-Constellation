@@ -6,8 +6,8 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 schedule>=1.2.0
 
-# Per ChromaDB
-chromadb>=0.4.17
+# Per ChromaDB - versione compatibile con Python 3.13
+chromadb==0.4.24
 langchain>=0.0.267
 openai>=1.1.1
 

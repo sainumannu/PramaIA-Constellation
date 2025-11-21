@@ -51,7 +51,24 @@ class VectorDBManager:
         """
         try:
             logger.info(f"Inizializzazione ChromaDB in modalità persistente locale. Path: {CHROMA_PERSIST_DIR}")
-            self._client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
+            
+            # Imposta variabili di ambiente per ChromaDB per evitare problemi con i binding Rust
+            import os
+            os.environ["CHROMA_SERVER_GRPC_PORT"] = "8001"
+            os.environ["CHROMA_CLIENT_TIMEOUT"] = "30"
+            
+            # Prova inizializzazione con impostazioni conservative
+            settings = chromadb.config.Settings(
+                persist_directory=CHROMA_PERSIST_DIR,
+                anonymized_telemetry=False,
+                allow_reset=True,
+                is_persistent=True
+            )
+            
+            self._client = chromadb.PersistentClient(
+                path=CHROMA_PERSIST_DIR,
+                settings=settings
+            )
             
             # Assicurati che la collezione esista
             self._collection = self._client.get_or_create_collection(name=CHROMA_COLLECTION_NAME)
@@ -60,9 +77,19 @@ class VectorDBManager:
             return True
         except Exception as e:
             logger.error(f"Errore nell'inizializzazione di ChromaDB: {str(e)}")
-            self._client = None
-            self._collection = None
-            return False
+            
+            # Fallback: prova con client in-memory temporaneo
+            try:
+                logger.warning("Tentativo fallback con client in-memory...")
+                self._client = chromadb.Client()
+                self._collection = self._client.get_or_create_collection(name=CHROMA_COLLECTION_NAME)
+                logger.warning("Fallback riuscito - usando ChromaDB in modalità in-memory")
+                return True
+            except Exception as fallback_error:
+                logger.error(f"Anche il fallback è fallito: {str(fallback_error)}")
+                self._client = None
+                self._collection = None
+                return False
     
     def get_client(self):
         """

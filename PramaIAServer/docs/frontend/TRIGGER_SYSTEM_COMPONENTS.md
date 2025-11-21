@@ -41,10 +41,10 @@ function TriggerForm() {
   
   return (
     <InputNodeSelector
-      workflowId="workflow_123"
+      workflowId="wf_bd11290f923b"
       selectedNodeId={selectedNode}
       onNodeSelect={setSelectedNode}
-      eventType="any_change"
+      eventType="pdf_file_added"
       showDebugInfo={process.env.NODE_ENV === 'development'}
     />
   );
@@ -306,11 +306,11 @@ return (
               }}
             >
               <option value="">Seleziona workflow...</option>
-              {workflows.map(workflow => (
-                <option key={workflow.id} value={workflow.id}>
-                  {workflow.name}
-                </option>
-              ))}
+              <option value="wf_bd11290f923b">PDF Document CREATE Pipeline</option>
+              <option value="wf_b32ead12131c">PDF Document DELETE Pipeline</option>
+              <option value="wf_055bf5029833">PDF Document UPDATE Pipeline</option>
+              <option value="wf_5008f60dc207">PDF Document READ Pipeline</option>
+              <option value="wf_92eded45afde">PDF Semantic Processing Pipeline</option>
             </Select>
           </FormControl>
 

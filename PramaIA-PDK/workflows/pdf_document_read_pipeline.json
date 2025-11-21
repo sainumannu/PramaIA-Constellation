@@ -10,7 +10,7 @@
   "nodes": [
     {
       "node_id": "query_input_processor",
-      "node_type": "QueryInputProcessor",
+      "node_type": "query_input_node",
       "name": "Query Input Processor",
       "description": "Elaborazione e validazione query utente (Backend)",
       "execution_context": "backend",
@@ -30,7 +30,7 @@
     },
     {
       "node_id": "query_router",
-      "node_type": "QueryRouter",
+      "node_type": "json_processor",
       "name": "Query Router",
       "description": "Routing intelligente query verso ricerca metadati e/o semantica (Backend)",
       "execution_context": "backend", 
@@ -50,7 +50,7 @@
     },
     {
       "node_id": "metadata_searcher",
-      "node_type": "MetadataSearcher", 
+      "node_type": "vector_store", 
       "name": "Metadata Database Searcher",
       "description": "Ricerca strutturata nel database metadati (Backend)",
       "execution_context": "backend",
@@ -71,7 +71,7 @@
     },
     {
       "node_id": "pdk_query_embedder",
-      "node_type": "PDKQueryEmbedder",
+      "node_type": "text_embedder",
       "name": "Query Embedder (PDK)",
       "description": "Conversione query utente in embedding vettoriale (PDK)",
       "execution_context": "pdk",
@@ -91,7 +91,7 @@
     },
     {
       "node_id": "pdk_semantic_search",
-      "node_type": "PDKSemanticSearch",
+      "node_type": "chroma_retriever",
       "name": "Semantic Vector Search (PDK)",
       "description": "Ricerca semantica nel database vettoriale ChromaDB (PDK)",
       "execution_context": "pdk",
@@ -112,7 +112,7 @@
     },
     {
       "node_id": "result_merger",
-      "node_type": "ResultMerger",
+      "node_type": "data_merger",
       "name": "Results Merger & Ranker", 
       "description": "Merge e ranking risultati da ricerca metadati e semantica (Backend)",
       "execution_context": "backend",
@@ -133,7 +133,7 @@
     },
     {
       "node_id": "pdk_context_builder",
-      "node_type": "PDKContextBuilder",
+      "node_type": "rag_prompt_builder",
       "name": "Context Builder (PDK)",
       "description": "Costruzione contesto per generazione risposta con LLM (PDK)",
       "execution_context": "pdk",
@@ -153,7 +153,7 @@
     },
     {
       "node_id": "pdk_llm_processor",
-      "node_type": "PDKLLMProcessor",
+      "node_type": "llm_processor",
       "name": "LLM Response Generator (PDK)",
       "description": "Generazione risposta contestualizzata tramite LLM (PDK)",
       "execution_context": "pdk",
@@ -173,7 +173,7 @@
     },
     {
       "node_id": "response_formatter",
-      "node_type": "ResponseFormatter", 
+      "node_type": "document_results_formatter", 
       "name": "Response Formatter",
       "description": "Formattazione finale risposta con metadati e citazioni (Backend)",
       "execution_context": "backend",
@@ -194,7 +194,7 @@
     },
     {
       "node_id": "search_analytics",
-      "node_type": "SearchAnalytics",
+      "node_type": "event_logger",
       "name": "Search Analytics Tracker",
       "description": "Tracciamento analytics e miglioramento future ricerche (Backend)",
       "execution_context": "backend", 

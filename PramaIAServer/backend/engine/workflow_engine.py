@@ -13,7 +13,7 @@ import uuid
 from backend.db.workflow_models import Workflow as WorkflowModel
 from backend.schemas.workflow_schemas import ExecutionStatus
 from backend.crud.workflow_crud import WorkflowCRUD
-from backend.engine.node_registry import NodeRegistry
+from backend.engine.db_node_registry import db_node_registry
 from backend.engine.execution_context import ExecutionContext
 from backend.engine.workflow_validator import WorkflowValidator, DataFlowValidator
 from backend.engine.data_types import DataTypeRegistry
@@ -36,7 +36,7 @@ class WorkflowEngine:
     """
     
     def __init__(self):
-        self.node_registry = NodeRegistry()
+        self.node_registry = db_node_registry
         self.workflow_validator = WorkflowValidator()
         self.data_flow_validator = DataFlowValidator()
         self.type_registry = DataTypeRegistry()

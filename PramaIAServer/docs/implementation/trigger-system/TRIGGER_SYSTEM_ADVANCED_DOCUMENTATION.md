@@ -23,16 +23,27 @@ Il sistema trigger avanzato di PramaIA implementa un routing intelligente tra ev
 
 ## 🏗️ Architettura
 
-### Database Schema
+### Database Schema (SQLite)
 
 ```sql
--- Tabella workflow_triggers estesa
-ALTER TABLE workflow_triggers 
-ADD COLUMN target_node_id VARCHAR(255);
+-- Tabella workflow_triggers con target_node_id (SQLite)
+CREATE TABLE workflow_triggers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  source TEXT NOT NULL,
+  workflow_id TEXT NOT NULL,
+  conditions TEXT DEFAULT '{}',
+  active INTEGER DEFAULT 1,
+  created_at DATETIME,
+  updated_at DATETIME,
+  target_node_id TEXT DEFAULT NULL
+);
 
--- Indice per performance
-CREATE INDEX idx_workflow_triggers_target_node 
-ON workflow_triggers(target_node_id);
+-- Indici per performance
+CREATE INDEX idx_workflow_triggers_workflow_id ON workflow_triggers(workflow_id);
+CREATE INDEX idx_workflow_triggers_target_node ON workflow_triggers(target_node_id);
+CREATE INDEX idx_workflow_triggers_event_type ON workflow_triggers(event_type);
 ```
 
 ### Componenti Frontend
@@ -68,11 +79,22 @@ def _find_input_nodes(self, workflow_data):
     """
 ```
 
-#### 2. **Database Migration**
+#### 2. **Target Node Implementation**
 ```python
-# backend/db/migrations/add_target_node_to_triggers.py
-def migrate():
-    """Aggiunge campo target_node_id alla tabella workflow_triggers"""
+# backend/db/models/workflow_trigger.py
+class WorkflowTrigger(Base):
+    __tablename__ = "workflow_triggers"
+    
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    event_type = Column(String, nullable=False)  # e.g., pdf_file_added
+    source = Column(String, nullable=False)      # e.g., pdf-monitor-event-source
+    workflow_id = Column(String, nullable=False)
+    target_node_id = Column(String, nullable=True)  # Target node for execution
+    conditions = Column(String, default='{}')    # JSON conditions
+    active = Column(Integer, default=1)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
 ```
 
 #### 3. **Enhanced CRUD Operations**
@@ -162,15 +184,39 @@ sequenceDiagram
     A->>F: Trigger creato
 ```
 
-### 2. **Execution Flow**
+### 2. **Configurazione Reale Sistema**
+
+Sistema PramaIA ha **3 trigger attivi**:
+
+```
+1. Trigger Aggiunta PDF
+   ├── event_type: pdf_file_added
+   ├── workflow_id: wf_bd11290f923b
+   ├── source: pdf-monitor-event-source
+   └── target_node_id: pdf_input_validator ✅
+
+2. Trigger Eliminazione PDF
+   ├── event_type: pdf_file_deleted
+   ├── workflow_id: wf_b32ead12131c
+   ├── source: pdf-monitor-event-source
+   └── target_node_id: pdf_input_validator ✅
+
+3. Trigger Aggiornamento PDF
+   ├── event_type: pdf_file_modified
+   ├── workflow_id: wf_055bf5029833
+   ├── source: pdf-monitor-event-source
+   └── target_node_id: pdf_input_validator ✅
+```
+
+**Flow di esecuzione:**
 ```mermaid
 graph LR
-    A[Event Source] --> B[Trigger System]
-    B --> C{Target Node?}
-    C -->|Yes| D[Execute Specific Node]
-    C -->|No| E[Auto-detect Input Node]
-    D --> F[Workflow Execution]
-    E --> F
+    A[pdf-monitor-event-source] -->|pdf_file_added| B[Trigger Match]
+    A -->|pdf_file_deleted| B
+    A -->|pdf_file_modified| B
+    B --> C[Lookup target_node_id]
+    C --> D[Execute at pdf_input_validator]
+    D --> E[Workflow Execution]
 ```
 
 ## 🧪 Testing

@@ -111,18 +111,26 @@
 - **Hook Interface**: `useEventSources` ha nuovi parametri opzionali
 - **CSS Classes**: Alcune classi CSS rinominate per consistenza
 
-### 🔄 Migration Guide
+### 🔄 Setup Guide
 
-#### **Database Migration**
+#### **Database Setup**
 ```bash
-# Esegui migrazione database
-python -m alembic upgrade head
+# Database è automaticamente inizializzato con SQLite
+# Ubicazione: backend/db/database.db
+# Contiene: 3 trigger predefiniti (pdf_file_added, pdf_file_deleted, pdf_file_modified)
 
-# Verifica migrazione
-python -m alembic current
+# Verifica database (opzionale)
+python -c "import sqlite3; conn = sqlite3.connect('backend/db/database.db'); print('Database OK')"
 ```
 
-#### **Frontend Updates**
+#### **Backend Setup**
+```bash
+# Avvia backend
+cd PramaIAServer
+python -m uvicorn backend.main:app --reload --port 8000
+```
+
+#### **Frontend Setup**
 ```bash
 # Aggiorna dipendenze
 npm install
@@ -131,7 +139,7 @@ npm install
 npm run dev
 ```
 
-#### **PDK Updates**
+#### **PDK Setup**
 ```bash
 # Riavvia PDK server per caricare nuove configurazioni
 cd PramaIA-PDK
@@ -157,28 +165,33 @@ node server/plugin-api-server.js
 - **Backend**: 95% coverage per nuove funzionalità
 - **Frontend**: 90% coverage per componenti trigger
 - **Integration**: 85% coverage per flussi end-to-end
-- **Database**: 100% coverage per migrazioni
+- **Database**: SQLite con schema workflow_triggers, indici ottimizzati
 
 #### **Test Environments**
 - Unit Tests: Jest + React Testing Library
 - Integration Tests: Pytest + TestClient
 - E2E Tests: Playwright
-- Database Tests: SQLAlchemy + PostgreSQL Test DB
+- Database Tests: SQLite + direct schema validation
 
 ### 🏗️ Infrastructure
 
 #### **Requirements**
-- **PostgreSQL**: 12+ (raccomandato 14+)
+- **SQLite**: 3.35+ (included with Python)
 - **Node.js**: 16+ (per PDK server)
 - **Python**: 3.9+ (per backend)
 - **React**: 18+ (per frontend)
+
+#### **Database Location**
+- Main Database: `backend/db/database.db`
+- Contains: All workflow, trigger, and execution data
+- Type: SQLite3 (single file database)
 
 #### **Dependencies Added**
 ```json
 {
   "backend": [
     "sqlalchemy>=1.4.0",
-    "alembic>=1.8.0"
+    "sqlite3 (built-in)"
   ],
   "frontend": [
     "@chakra-ui/react>=2.0.0",

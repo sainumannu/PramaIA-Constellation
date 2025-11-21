@@ -36,4 +36,4 @@ class UserInToken(BaseModel):
     name: Optional[str] = None
     role: str
     email: Optional[EmailStr] = None
-    user_id: Optional[str] = None # ID univoco dal DB o OAuth
+    user_id: Optional[int] = None # ID univoco dal DB o OAuth

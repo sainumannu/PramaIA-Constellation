@@ -5,8 +5,10 @@ from fastapi.responses import FileResponse # Importa FileResponse
 from typing import List
 import shutil
 import math # Importa il modulo math
+import json
 
 from backend.services import document_service # Servizio per la logica di business
+from backend.services.event_emitter import emit_event # Servizio per l'emissione di eventi
 from backend.core.rag_engine import remove_pdf as rag_remove_pdf, get_index_status # Funzioni RAG
 from backend.core.config import DATA_DIR, INDEXES_DIR, DATA_INDEX_PATH
 from backend.auth.dependencies import get_current_user, get_current_admin_user # Non importare User da qui
@@ -14,10 +16,41 @@ from backend.schemas.user_schemas import UserInToken # Importa il modello Pydant
 # Rimosso import rag_vectorstore
 from backend.app.clients.vectorstore_client import VectorstoreServiceClient
 from backend.utils import get_logger # Importa il logger unificato
+from backend.db.database import SessionLocal
+from backend.models.trigger_models import EventLog
 
 
 router = APIRouter()
 logger = get_logger() # Usa il logger unificato che invia al LogService
+
+
+def log_event_to_db(event_type: str, source: str, data: dict, user_id: int, success: bool = True):
+    """
+    Log an event directly to the database.
+    This bypasses emit_event and writes directly to event_logs.
+    """
+    db = SessionLocal()
+    try:
+        event_log = EventLog(
+            event_type=event_type,
+            source=source,
+            data=json.dumps(data),
+            triggers_matched=1,
+            workflows_executed=0,
+            success=success,
+            error_message=None
+        )
+        db.add(event_log)
+        db.commit()
+        logger.info(f"✅ Event logged to DB: {event_type} from {source} [ID: {event_log.id}]")
+        return event_log.id
+    except Exception as e:
+        logger.error(f"❌ Failed to log event: {e}")
+        db.rollback()
+        return None
+    finally:
+        db.close()
+
 
 
 @router.get("/vectorstore/list", summary="Elenco documenti indicizzati nel vectorstore")
@@ -133,6 +166,23 @@ async def upload_pdfs(
                 await document_service.process_uploaded_file(content, file.filename, user_id)
                 processed_files.append(file.filename)
                 logger.info(f"File '{file.filename}' uploaded and processed successfully by user '{user_id}'.")
+                # Emit event for workflow triggering
+                try:
+                    await emit_event(
+                        event_type="file_upload",
+                        source="web-client-upload",
+                        data={
+                            "filename": file.filename,
+                            "file_size": len(content),
+                            "content_type": file.content_type or "application/pdf",
+                            "user_id": user_id,
+                            "is_public": False
+                        },
+                        user_id=str(user_id)
+                    )
+                    logger.info(f"Event emitted successfully for {file.filename}")
+                except Exception as emit_error:
+                    logger.error(f"Failed to emit event for {file.filename}: {emit_error}")
             except Exception as e_file:
                 logger.error(f"Error processing file '{getattr(file, 'filename', None)}' for user '{user_id}': {e_file}", exc_info=True)
                 errors.append({"filename": getattr(file, 'filename', None), "error": str(e_file)})
@@ -175,6 +225,23 @@ async def upload_pdfs_with_visibility(
                     "owner": user_id
                 })
                 logger.info(f"File '{file.filename}' uploaded and processed successfully by user '{user_id}' (public: {is_public}).")
+                # Emit event for workflow triggering
+                try:
+                    await emit_event(
+                        event_type="file_upload",
+                        source="web-client-upload",
+                        data={
+                            "filename": file.filename,
+                            "file_size": len(content),
+                            "content_type": file.content_type or "application/pdf",
+                            "user_id": user_id,
+                            "is_public": is_public
+                        },
+                        user_id=str(user_id)
+                    )
+                    logger.info(f"Event emitted successfully for {file.filename}")
+                except Exception as emit_error:
+                    logger.error(f"Failed to emit event for {file.filename}: {emit_error}")
             except Exception as e_file:
                 logger.error(f"Error processing file '{getattr(file, 'filename', None)}' for user '{user_id}': {e_file}", exc_info=True)
                 errors.append({"filename": getattr(file, 'filename', None), "error": str(e_file)})

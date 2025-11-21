@@ -360,3 +360,43 @@ def evaluate_trigger_conditions(event_data: Dict[str, Any], conditions: Dict[str
                 return False
     
     return True  # Tutte le condizioni sono soddisfatte
+
+
+def create_event_log(db: Session, event_type: str, source: Optional[str],
+                    data: Dict[str, Any], triggers_matched: int,
+                    workflows_executed: int, success: bool,
+                    error_message: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Crea un log dell'evento nel database (tabella event_logs)
+    """
+    try:
+        from backend.models.trigger_models import EventLog
+        
+        event_log = EventLog(
+            event_type=event_type,
+            source=source or "unknown",
+            event_data=data,  # Changed from data to event_data
+            triggers_matched=triggers_matched,
+            workflows_executed=workflows_executed,
+            success=success,
+            error_message=error_message
+        )
+        
+        db.add(event_log)
+        db.commit()
+        db.refresh(event_log)
+        
+        logger.info(f"✅ Event log created: {event_log.id}")
+        
+        return {
+            "id": event_log.id,
+            "event_type": event_log.event_type,
+            "source": event_log.source,
+            "success": event_log.success,
+            "created_at": event_log.created_at.isoformat() if event_log.created_at else None
+        }
+    except Exception as e:
+        logger.error(f"❌ Error creating event log: {str(e)}")
+        db.rollback()
+        raise
+

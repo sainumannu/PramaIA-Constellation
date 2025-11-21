@@ -230,7 +230,9 @@ if (Test-Path "PramaIA-Reconciliation") {
 # 5. Avvio Backend FastAPI (Critico)
 Write-Host "5. Backend FastAPI (Critico)" -ForegroundColor Magenta
 if (Test-Path "PramaIAServer") {
-    if (Start-PramaService -Name "Backend FastAPI" -Path "PramaIAServer" -Command "python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port $BACKEND_PORT" -StartupDelay 8 -Critical) { 
+    # Usa il venv del Backend se esiste, altrimenti Python globale
+    $backendPython = if (Test-Path "PramaIAServer\venv\Scripts\python.exe") { ".\venv\Scripts\python.exe" } else { "python" }
+    if (Start-PramaService -Name "Backend FastAPI" -Path "PramaIAServer" -Command "$backendPython -m uvicorn backend.main:app --reload --host 0.0.0.0 --port $BACKEND_PORT" -StartupDelay 8 -Critical) { 
         $criticalServices++
     }
 } elseif (Test-Path "backend") {

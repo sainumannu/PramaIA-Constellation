@@ -36,18 +36,28 @@ Restituisce un array di tutti i trigger configurati nel sistema.
 ```json
 [
   {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "name": "Upload PDF",
-    "event_type": "pdf_upload",
-    "source": "pdf-monitor",
-    "workflow_id": "workflow123",
-    "conditions": {
-      "file_type": "pdf",
-      "size_gt": 1024
-    },
-    "active": true,
-    "created_at": "2025-08-01T12:00:00Z",
-    "updated_at": "2025-08-01T12:00:00Z"
+    "id": "2cf4add5-5fa5-485f-a8b1-549557b14955",
+    "name": "Trigger Aggiunta PDF",
+    "event_type": "pdf_file_added",
+    "source": "pdf-monitor-event-source",
+    "workflow_id": "wf_bd11290f923b",
+    "target_node_id": "pdf_input_validator",
+    "conditions": {},
+    "active": 1,
+    "created_at": "2025-10-08T20:27:37Z",
+    "updated_at": "2025-11-19T10:00:00Z"
+  },
+  {
+    "id": "11f4a284-9ac3-4fe7-bbe3-ca90d0c22f7a",
+    "name": "Trigger Eliminazione PDF",
+    "event_type": "pdf_file_deleted",
+    "source": "pdf-monitor-event-source",
+    "workflow_id": "wf_b32ead12131c",
+    "target_node_id": "pdf_input_validator",
+    "conditions": {},
+    "active": 1,
+    "created_at": "2025-10-08T20:27:37Z",
+    "updated_at": "2025-11-19T10:00:00Z"
   }
 ]
 ```
@@ -64,18 +74,16 @@ Restituisce i dettagli di un trigger specifico.
 
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Upload PDF",
-  "event_type": "pdf_upload",
-  "source": "pdf-monitor",
-  "workflow_id": "workflow123",
-  "conditions": {
-    "file_type": "pdf",
-    "size_gt": 1024
-  },
-  "active": true,
-  "created_at": "2025-08-01T12:00:00Z",
-  "updated_at": "2025-08-01T12:00:00Z"
+  "id": "2cf4add5-5fa5-485f-a8b1-549557b14955",
+  "name": "Trigger Aggiunta PDF",
+  "event_type": "pdf_file_added",
+  "source": "pdf-monitor-event-source",
+  "workflow_id": "wf_bd11290f923b",
+  "target_node_id": "pdf_input_validator",
+  "conditions": {},
+  "active": 1,
+  "created_at": "2025-10-08T20:27:37Z",
+  "updated_at": "2025-11-19T10:00:00Z"
 }
 ```
 
@@ -90,14 +98,12 @@ Content-Type: application/json
 
 ```json
 {
-  "name": "Upload PDF",
-  "event_type": "pdf_upload",
-  "source": "pdf-monitor",
-  "workflow_id": "workflow123",
-  "conditions": {
-    "file_type": "pdf",
-    "size_gt": 1024
-  },
+  "name": "Trigger Aggiunta PDF",
+  "event_type": "pdf_file_added",
+  "source": "pdf-monitor-event-source",
+  "workflow_id": "wf_bd11290f923b",
+  "target_node_id": "pdf_input_validator",
+  "conditions": {},
   "active": true
 }
 ```
@@ -106,18 +112,16 @@ Content-Type: application/json
 
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Upload PDF",
-  "event_type": "pdf_upload",
-  "source": "pdf-monitor",
-  "workflow_id": "workflow123",
-  "conditions": {
-    "file_type": "pdf",
-    "size_gt": 1024
-  },
-  "active": true,
-  "created_at": "2025-08-03T15:30:00Z",
-  "updated_at": "2025-08-03T15:30:00Z"
+  "id": "2cf4add5-c7e5-42a2-9c1e-8b0a9f5d3e2c",
+  "name": "Trigger Aggiunta PDF",
+  "event_type": "pdf_file_added",
+  "source": "pdf-monitor-event-source",
+  "workflow_id": "wf_bd11290f923b",
+  "target_node_id": "pdf_input_validator",
+  "conditions": {},
+  "active": 1,
+  "created_at": "2025-11-19T10:27:37Z",
+  "updated_at": "2025-11-19T10:30:00Z"
 }
 ```
 
@@ -132,15 +136,13 @@ Content-Type: application/json
 
 ```json
 {
-  "name": "Upload PDF Aggiornato",
-  "event_type": "pdf_upload",
-  "source": "pdf-monitor",
-  "workflow_id": "workflow456",
-  "conditions": {
-    "file_type": "pdf",
-    "size_gt": 2048
-  },
-  "active": true
+  "name": "Trigger Eliminazione PDF",
+  "event_type": "pdf_file_deleted",
+  "source": "pdf-monitor-event-source",
+  "workflow_id": "wf_b32ead12131c",
+  "target_node_id": "pdf_input_validator",
+  "conditions": {},
+  "active": 1
 }
 ```
 
@@ -148,18 +150,16 @@ Content-Type: application/json
 
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Upload PDF Aggiornato",
-  "event_type": "pdf_upload",
-  "source": "pdf-monitor",
-  "workflow_id": "workflow456",
-  "conditions": {
-    "file_type": "pdf",
-    "size_gt": 2048
-  },
-  "active": true,
-  "created_at": "2025-08-01T12:00:00Z",
-  "updated_at": "2025-08-03T15:35:00Z"
+  "id": "2cf4add5-5fa5-485f-a8b1-549557b14955",
+  "name": "Trigger Aggiunta PDF",
+  "event_type": "pdf_file_added",
+  "source": "pdf-monitor-event-source",
+  "workflow_id": "wf_bd11290f923b",
+  "target_node_id": "pdf_input_validator",
+  "conditions": {},
+  "active": 1,
+  "created_at": "2025-10-08T20:27:37Z",
+  "updated_at": "2025-11-19T10:00:00Z"
 }
 ```
 
@@ -207,21 +207,15 @@ DELETE /api/workflows/triggers/{trigger_id}
 
 | Tipo di evento | Descrizione |
 |----------------|-------------|
-| pdf_upload | Quando un PDF viene caricato nel sistema |
-| file_created | Quando un file viene creato nel sistema |
-| schedule | Trigger basato su una pianificazione temporale |
-| api_call | Quando viene effettuata una specifica chiamata API |
-| document_processed | Quando un documento è stato elaborato |
+| pdf_file_added | Quando un PDF viene rilevato come nuovo nel monitoraggio |
+| pdf_file_deleted | Quando un PDF viene rimosso dal sistema |
+| pdf_file_modified | Quando un PDF viene modificato o aggiornato |
 
 ## Sorgenti supportate
 
 | Sorgente | Descrizione |
 |----------|-------------|
-| pdf-monitor | Plugin di monitoraggio PDF |
-| scheduler | Sistema di pianificazione |
-| api | Endpoint API esterni |
-| ui | Azioni dell'interfaccia utente |
-| system | Eventi di sistema interni |
+| pdf-monitor-event-source | Sistema di monitoraggio PDF integrato |
 
 ## Condizioni
 

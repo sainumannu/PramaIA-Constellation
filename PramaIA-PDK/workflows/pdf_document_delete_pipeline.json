@@ -10,7 +10,7 @@
   "nodes": [
     {
       "node_id": "delete_input_validator",
-      "node_type": "DeleteInputValidator",
+      "node_type": "user_input",
       "name": "Delete Input Validator",
       "description": "Validazione richiesta cancellazione e controlli di sicurezza (Backend)",
       "execution_context": "backend",

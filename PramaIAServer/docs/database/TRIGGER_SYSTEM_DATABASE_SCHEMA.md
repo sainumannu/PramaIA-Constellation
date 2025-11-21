@@ -7,17 +7,16 @@
 #### Schema Definition
 ```sql
 CREATE TABLE workflow_triggers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    workflow_id VARCHAR(255) NOT NULL,
-    source VARCHAR(255) NOT NULL,
-    event_type VARCHAR(255) NOT NULL,
-    target_node_id VARCHAR(255),  -- NEW FIELD
-    config JSONB DEFAULT '{}',
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    workflow_id TEXT NOT NULL,
+    conditions TEXT DEFAULT '{}',
+    active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    target_node_id TEXT DEFAULT NULL
 );
 ```
 
@@ -81,104 +80,85 @@ CHECK (length(trim(event_type)) > 0);
 
 ```python
 """
-Migration: Add target_node_id to workflow_triggers table
-Date: 2025-08-05
-Description: Adds support for specific node targeting in triggers
+SQLite Schema: workflow_triggers table
+Database: SQLite (not PostgreSQL)
+Status: Already in production
 """
 
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+# Direct SQLite table creation (no migration needed - already exists)
+# Located at: backend/db/database.db
 
-def upgrade():
-    """Add target_node_id column to workflow_triggers table"""
-    
-    # Add the new column
-    op.add_column('workflow_triggers', 
-        sa.Column('target_node_id', sa.String(255), nullable=True)
-    )
-    
-    # Add index for performance
-    op.create_index('idx_workflow_triggers_target_node', 
-                   'workflow_triggers', ['target_node_id'])
-    
-    # Add composite index for common queries
-    op.create_index('idx_workflow_triggers_composite', 
-                   'workflow_triggers', 
-                   ['workflow_id', 'target_node_id'])
-    
-    # Update existing triggers with default behavior
-    # (Optional: set target_node_id to first input node for existing triggers)
-    connection = op.get_bind()
-    connection.execute("""
-        UPDATE workflow_triggers 
-        SET target_node_id = NULL 
-        WHERE target_node_id IS NULL
-    """)
+import sqlite3
 
-def downgrade():
-    """Remove target_node_id column from workflow_triggers table"""
+def create_workflow_triggers_table():
+    """Create workflow_triggers table in SQLite"""
     
-    # Drop indexes
-    op.drop_index('idx_workflow_triggers_composite', 'workflow_triggers')
-    op.drop_index('idx_workflow_triggers_target_node', 'workflow_triggers')
+    conn = sqlite3.connect('backend/db/database.db')
+    cursor = conn.cursor()
     
-    # Drop column
-    op.drop_column('workflow_triggers', 'target_node_id')
+    # Create table (already exists in production database)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS workflow_triggers (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            source TEXT NOT NULL,
+            workflow_id TEXT NOT NULL,
+            conditions TEXT DEFAULT '{}',
+            active INTEGER DEFAULT 1,
+            created_at DATETIME,
+            updated_at DATETIME,
+            target_node_id TEXT DEFAULT NULL
+        )
+    ''')
+    
+    # Create indexes
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_workflow_triggers_workflow_id 
+        ON workflow_triggers(workflow_id)
+    ''')
+    
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_workflow_triggers_target_node 
+        ON workflow_triggers(target_node_id)
+    ''')
+    
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_workflow_triggers_event_type 
+        ON workflow_triggers(event_type)
+    ''')
+    
+    conn.commit()
+    conn.close()
 ```
 
-### Data Migration: Populate Target Nodes
+### Existing Production Data
 
-**File:** `backend/db/migrations/populate_target_nodes.py`
+**Current Triggers in Database:**
 
-```python
-"""
-Migration: Populate target_node_id for existing triggers
-Date: 2025-08-05
-Description: Automatically sets target_node_id for existing triggers
-"""
+1. **Trigger Aggiunta PDF**
+   - ID: (UUID)
+   - event_type: `pdf_file_added`
+   - source: `pdf-monitor-event-source`
+   - workflow_id: `wf_bd11290f923b`
+   - target_node_id: `pdf_input_validator`
+   - active: 1
 
-import asyncio
-from alembic import op
-from sqlalchemy import text
-from backend.engine.workflow_engine import WorkflowEngine
-from backend.core.config import settings
+2. **Trigger Eliminazione PDF**
+   - ID: (UUID)
+   - event_type: `pdf_file_deleted`
+   - source: `pdf-monitor-event-source`
+   - workflow_id: `wf_b32ead12131c`
+   - target_node_id: `pdf_input_validator`
+   - active: 1
 
-def upgrade():
-    """Populate target_node_id for existing triggers"""
-    
-    connection = op.get_bind()
-    
-    # Get all triggers without target_node_id
-    result = connection.execute(text("""
-        SELECT id, workflow_id 
-        FROM workflow_triggers 
-        WHERE target_node_id IS NULL
-    """))
-    
-    workflow_engine = WorkflowEngine()
-    
-    for trigger in result:
-        try:
-            # Get input nodes for workflow
-            input_nodes = asyncio.run(
-                workflow_engine.get_input_nodes(trigger.workflow_id)
-            )
-            
-            if input_nodes:
-                # Use first available input node as default
-                default_node_id = input_nodes[0]['node_id']
-                
-                connection.execute(text("""
-                    UPDATE workflow_triggers 
-                    SET target_node_id = :node_id 
-                    WHERE id = :trigger_id
-                """), {
-                    'node_id': default_node_id,
-                    'trigger_id': trigger.id
-                })
-                
-                print(f"Updated trigger {trigger.id} with node {default_node_id}")
+3. **Trigger Aggiornamento PDF**
+   - ID: (UUID)
+   - event_type: `pdf_file_modified`
+   - source: `pdf-monitor-event-source`
+   - workflow_id: `wf_055bf5029833`
+   - target_node_id: `pdf_input_validator`
+   - active: 1
             else:
                 print(f"No input nodes found for workflow {trigger.workflow_id}")
                 

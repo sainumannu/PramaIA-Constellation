@@ -5,7 +5,7 @@ import logging
 import time
 import functools
 import json
-from backend.engine.node_registry import NodeRegistry
+from backend.engine.db_node_registry import db_node_registry
 from backend.core.config import PDK_SERVER_URL
 
 # Creiamo un router senza prefisso
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Ottieni l'istanza del registro nodi
-node_registry = NodeRegistry()
+# Global database node registry instance already available as db_node_registry
 
 logger.info(f"🔌 PDK Server configurato su: {PDK_SERVER_URL}")
 
@@ -77,7 +77,7 @@ async def get_plugins():
                 registered_nodes = []
                 for node in nodes:
                     try:
-                        node_type = node_registry.register_pdk_node(plugin_id, node)
+                        node_type = db_node_registry.register_pdk_node(plugin_id, node)
                         # Aggiorna il tipo del nodo con quello registrato
                         node["type"] = node_type
                         registered_nodes.append(node)
@@ -231,8 +231,8 @@ async def get_workflow_pdk_nodes():
                             continue
                         
                         try:
-                            # Registra nel NodeRegistry
-                            registered_type = node_registry.register_pdk_node(plugin_id, node)
+                            # Registra nel DatabaseNodeRegistry
+                            registered_type = db_node_registry.register_pdk_node(plugin_id, node)
                             
                             # Prepara nodo per il frontend
                             config_schema = node.get("configSchema", {})
@@ -371,7 +371,7 @@ async def get_workflow_pdk_nodes():
                                     continue
                                 
                                 try:
-                                    registered_type = node_registry.register_pdk_node(plugin_id, node)
+                                    registered_type = db_node_registry.register_pdk_node(plugin_id, node)
                                     
                                     # NUOVA LOGICA - Verifica e corregge l'icona
                                     node_name = node.get("name", "Unnamed Node")

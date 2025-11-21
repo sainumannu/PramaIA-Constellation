@@ -10,7 +10,7 @@
   "nodes": [
     {
       "node_id": "update_input_validator",
-      "node_type": "UpdateInputValidator",
+      "node_type": "file_input",
       "name": "Update Input Validator",
       "description": "Validazione input di aggiornamento e controlli esistenza documento (Backend)",
       "execution_context": "backend",
@@ -30,7 +30,7 @@
     },
     {
       "node_id": "version_manager",
-      "node_type": "VersionManager",
+      "node_type": "metadata_manager",
       "name": "Document Version Manager",
       "description": "Gestione versioning e backup documento esistente (Backend)",
       "execution_context": "backend",

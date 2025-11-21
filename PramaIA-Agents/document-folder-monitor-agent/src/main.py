@@ -177,7 +177,7 @@ async def force_sync(request: Request):
     """
     # Qui dovresti implementare la logica per inviare gli eventi non ancora trasmessi
     # Ad esempio: chiama una funzione che invia gli eventi bufferizzati al backend
-    # send_events_to_backend()
+    send_events_to_backend()
     info("Comando ricevuto dal server: richiesta di sincronizzazione forzata.")
     return {"status": "sync_triggered"}
 

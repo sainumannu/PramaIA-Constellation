@@ -1,0 +1,211 @@
+================================================================================
+RAPPORTO FINALE: PROBLEMA IDENTIFICATO E SOLUZIONE
+================================================================================
+
+DATA: 19 Novembre 2025
+STATO: PROBLEMA ROOT CAUSE TROVATO
+
+================================================================================
+IL VERO PROBLEMA
+================================================================================
+
+Il token JWT CONTIENE user_id, ma il valore è NULL:
+
+  {
+    "sub": "debugtest@example.com",
+    "name": "debugtest@example.com",
+    "role": "user",
+    "user_id": null,  <-- QUESTO È IL PROBLEMA!
+    "exp": 1763575087
+  }
+
+CAUSA ROOT:
+  Quando un utente viene registrato, il sistema crea l'oggetto User
+  ma user_id è NULL finché l'utente non viene salvato nel database
+  e l'ID non viene assegnato dal database.
+
+  Nel momento in cui viene generato il token JWT (subito dopo
+  la registrazione), user_id è ancora NULL.
+
+================================================================================
+DOVE VIENE GENERATO IL PROBLEMA
+================================================================================
+
+File: PramaIAServer/backend/routers/auth_router.py
+Linea: 195-198 (registrazione) e 73-74 (login)
+
+Codice problematico:
+  to_encode = {
+      "sub": user.username,
+      "name": user.name or user.username,
+      "role": user.role,
+      "user_id": user.user_id,  <-- user_id è NULL se non salvato correttamente
+      "exp": expire
+  }
+
+SEQUENZA DI ERRORI:
+  1. register_user() chiama user_service.create_user()
+  2. create_user() crea oggetto User ma user_id non è assegnato
+  3. Token viene creato con user_id=None
+  4. Token inviato al client
+  5. Client invia token a /api/documents/upload/
+  6. Endpoint verifica: if not user_id: raise error
+  7. ERRORE! "user_id mancante nel token utente"
+
+================================================================================
+SOLUZIONE
+================================================================================
+
+La soluzione è GARANTIRE che user_id sia assegnato PRIMA di creare il token.
+
+OPZIONE A (CONSIGLIATA): Verificare che l'utente sia salvato nel DB
+
+  In auth_router.py, dopo user_service.create_user(), aggiungere:
+  
+  user = user_service.create_user(db, user_data)
+  db.commit()  # <-- ASSICURATI DI FARE COMMIT
+  db.refresh(user)  # <-- RICARICA L'OGGETTO CON L'ID DEL DB
+  
+  # ADESSO user.user_id avrà il valore corretto dal database
+
+OPZIONE B: Usare user.id se user_id non è disponibile
+
+  to_encode = {
+      "sub": user.username,
+      "name": user.name or user.username,
+      "role": user.role,
+      "user_id": user.id,  # Prova con .id se .user_id è None
+      "exp": expire
+  }
+
+OPZIONE C: Usare un default se ancora None
+
+  user_id_for_token = user.user_id or user.id or 0
+  
+  to_encode = {
+      "sub": user.username,
+      "name": user.name or user.username,
+      "role": user.role,
+      "user_id": user_id_for_token,
+      "exp": expire
+  }
+
+================================================================================
+COME TESTARE LA FIX
+================================================================================
+
+1. Modificare auth_router.py linea 194-195:
+
+   PRIMA:
+     user = user_service.create_user(db, user_data)
+     logger.info(...)
+   
+   DOPO:
+     user = user_service.create_user(db, user_data)
+     db.commit()  # <-- AGGIUNGI QUESTA LINEA
+     db.refresh(user)  # <-- AGGIUNGI QUESTA LINEA
+     logger.info(...)
+
+2. Salvare e riavviare il backend
+
+3. Eseguire il test:
+   python analyze_token_issue.py
+
+4. Verificare che il token contenga:
+   "user_id": <numero_ID>  (NOT null)
+
+5. Eseguire il test pipeline:
+   python test_e2e_register_login.py
+
+6. Verificare che workflow_executions > 0:
+   python quick_check.py
+
+================================================================================
+COMANDI PER ATTUARE LA CORREZIONE
+================================================================================
+
+# 1. Aprire il file
+vim PramaIAServer/backend/routers/auth_router.py
+
+# 2. Posizionarsi alla linea 194 (sezione register_user)
+
+# 3. Aggiungere le due linee:
+#    - db.commit()
+#    - db.refresh(user)
+
+# 4. Salvare
+
+# 5. Riavviare backend:
+cd PramaIAServer
+python -m uvicorn backend.main:app --reload --port 8000
+
+# 6. Testare:
+python analyze_token_issue.py
+
+================================================================================
+IMPATTO DELLA CORREZIONE
+================================================================================
+
+Prima della fix:
+  - Token con user_id=null
+  - Upload fallisce con errore 400
+  - Pipeline non funziona
+
+Dopo la fix:
+  - Token con user_id corretto
+  - Upload funziona
+  - Trigger si attivano
+  - Workflow eseguono
+  - Documenti vengono vettorizzati
+
+TEMPO RICHIESTO: ~5 minuti
+
+================================================================================
+PROSSIMI STEP
+================================================================================
+
+1. [ ] Modificare auth_router.py aggiungendo db.commit() e db.refresh()
+2. [ ] Riavviare il backend
+3. [ ] Eseguire python analyze_token_issue.py
+4. [ ] Verificare che "user_id" NON sia null nel token
+5. [ ] Eseguire python test_e2e_register_login.py
+6. [ ] Controllare che workflow_executions > 0
+7. [ ] Eseguire python quick_check.py per confermare
+
+================================================================================
+SCRIPT UTILI
+================================================================================
+
+# Analizza token attuale
+python analyze_token_issue.py
+
+# Test pipeline completo
+python test_e2e_register_login.py
+
+# Check rapido
+python quick_check.py
+
+# Rapporto diagnostico
+python final_diagnostic_report.py
+
+================================================================================
+CONCLUSIONE
+================================================================================
+
+Il problema è IDENTIFICATO e la SOLUZIONE è SEMPLICE.
+
+Una volta aggiunto db.commit() e db.refresh() nel register_user(),
+la pipeline funzionerà perfettamente.
+
+Il fix richiede:
+  - 1 riga di codice aggiunta (db.commit())
+  - 1 riga di codice aggiunta (db.refresh())
+  - ~5 minuti di lavoro
+
+Dopo la correzione:
+  - Upload funzionerà
+  - Workflow eseguiranno
+  - Documenti verranno vettorizzati
+  - Sistema completamente operativo
+
+================================================================================
